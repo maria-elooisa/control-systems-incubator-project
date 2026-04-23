@@ -15,6 +15,20 @@ def load_styles() -> None:
 
 load_styles()
 
+# Fixed mock state for now; replace with backend value later.
+backend_state = "ideal"  # accepted: "frio", "calor", "ideal"
+
+
+def resolve_state_image(state: str) -> Path:
+    state_map = {
+        "frio": "ft-frio.png",
+        "calor": "ft-calor.png",
+        "ideal": "ft-ideal.png",
+    }
+    normalized_state = state.lower().strip()
+    selected = state_map.get(normalized_state, state_map["ideal"])
+    return Path(__file__).parent / "components" / "img" / selected
+
 st.markdown(
     "<h1 style='text-align: center;'>Control System Incubator Dashboard</h1>",
     unsafe_allow_html=True,
@@ -61,9 +75,17 @@ st.markdown(
 )
 st.plotly_chart(build_figure(st.session_state.history), use_container_width=True)
 
-_, col_buttons, _ = st.columns([1, 2, 1])
-with col_buttons:
+col_left, col_center, col_right = st.columns([1, 1, 1])
+
+with col_center:
     if st.button("Falha da Ventoinha", use_container_width=True):
         st.session_state.fan_failure = not st.session_state.fan_failure
     if st.button("Falha do Sistema", use_container_width=True):
         st.session_state.system_failure = not st.session_state.system_failure
+
+with col_right:
+    _, col_image_right = st.columns([0.35, 0.65])
+    with col_image_right:
+        image_path = resolve_state_image(backend_state)
+        if image_path.exists():
+            st.image(str(image_path), width=180)
