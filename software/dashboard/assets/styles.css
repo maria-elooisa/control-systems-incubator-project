@@ -1,0 +1,50 @@
+:root {
+  --bg-main: #ffffff;
+  --accent-egg: #f6c945;
+  --accent-heat: #f28c28;
+  --alert-red: #d62828;
+  --text-main: #222222;
+}
+
+.main {
+  background: radial-gradient(circle at 10% -20%, #fff9e9 5%, var(--bg-main) 45%);
+}
+
+.block-container {
+  max-width: 1200px;
+  padding-top: 2rem;
+}
+
+h1, h2, h3 {
+  color: var(--text-main);
+}
+
+[data-testid="stMetricValue"] {
+  color: var(--accent-heat);
+  text-align: center;
+  justify-content: center;
+}
+
+[data-testid="stMetricLabel"] {
+  display: flex;
+  justify-content: center;
+  text-align: center;
+}
+
+[data-testid="stMetricLabel"] > div,
+[data-testid="stMetricLabel"] p {
+  width: 100%;
+  text-align: center;
+  justify-content: center;
+}
+
+button[kind="secondary"] {
+  border: 1px solid var(--alert-red);
+  color: var(--alert-red);
+  font-weight: 700;
+}
+
+button[kind="secondary"]:hover {
+  border-color: #a91e1e;
+  color: #a91e1e;
+}
