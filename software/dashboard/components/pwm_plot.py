@@ -45,12 +45,26 @@ def build_figure(history: dict) -> go.Figure:
     """Build Plotly figure with PWM and temperature."""
     fig = go.Figure()
 
+    fig.add_hrect(
+        y0=36.7,
+        y1=37.3,
+        yref="y2",
+        fillcolor="rgba(242, 140, 40, 0.14)",
+        line_width=0,
+        layer="below",
+        annotation_text="Faixa ideal",
+        annotation_position="top left",
+        annotation_font={"size": 11, "color": "#8f5c20"},
+    )
+
     fig.add_scatter(
         x=history["x"],
         y=history["pwm"],
         mode="lines",
         name="PWM (%)",
-        line={"color": "#F28C28", "width": 3},
+        line={"color": "#F28C28", "width": 3, "shape": "spline", "smoothing": 0.8},
+        fill="tozeroy",
+        fillcolor="rgba(242, 140, 40, 0.12)",
         yaxis="y1",
     )
 
@@ -59,24 +73,90 @@ def build_figure(history: dict) -> go.Figure:
         y=history["temp"],
         mode="lines",
         name="Temperatura (°C)",
-        line={"color": "#D62828", "width": 3},
+        line={"color": "#D1491E", "width": 3, "shape": "spline", "smoothing": 0.8},
         yaxis="y2",
     )
 
+    fig.add_scatter(
+        x=[history["x"][-1]],
+        y=[history["temp"][-1]],
+        mode="markers",
+        marker={"size": 9, "color": "#D1491E", "line": {"color": "white", "width": 1.5}},
+        name="Temp. atual",
+        yaxis="y2",
+        showlegend=False,
+    )
+
     fig.update_layout(
-        margin={"l": 20, "r": 20, "t": 15, "b": 15},
+        margin={"l": 18, "r": 18, "t": 10, "b": 10},
         paper_bgcolor="white",
         plot_bgcolor="white",
-        legend={"orientation": "h", "y": 1.1, "x": 0.0},
-        xaxis={"title": "Amostras", "showgrid": True, "gridcolor": "#F2F2F2"},
-        yaxis={"title": "PWM (%)", "range": [0, 100], "showgrid": False},
+        hovermode="x unified",
+        legend={
+            "orientation": "h",
+            "y": 1.1,
+            "x": 0.0,
+            "bgcolor": "rgba(255,255,255,0.7)",
+            "bordercolor": "#ececec",
+            "borderwidth": 1,
+        },
+        xaxis={
+            "title": "Amostras",
+            "showgrid": True,
+            "gridcolor": "#F2F2F2",
+            "zeroline": False,
+            "tickfont": {"size": 11},
+        },
+        yaxis={
+            "title": "PWM (%)",
+            "range": [0, 100],
+            "showgrid": False,
+            "tickfont": {"size": 11},
+        },
         yaxis2={
             "title": "Temperatura (°C)",
             "overlaying": "y",
             "side": "right",
             "range": [34, 41],
             "showgrid": False,
+            "tickfont": {"size": 11},
         },
+        transition={"duration": 500, "easing": "cubic-in-out"},
     )
 
     return fig
+
+
+def build_pwm_gauge(pwm_value: float) -> go.Figure:
+    """Build radial gauge for current PWM."""
+    gauge = go.Figure(
+        go.Indicator(
+            mode="gauge+number",
+            value=pwm_value,
+            number={"suffix": "%", "font": {"size": 30, "color": "#2b2b2b"}},
+            title={"text": "Carga PWM", "font": {"size": 14, "color": "#5b5b5b"}},
+            gauge={
+                "axis": {"range": [0, 100], "tickwidth": 1, "tickcolor": "#8c8c8c"},
+                "bar": {"color": "#F28C28", "thickness": 0.28},
+                "bgcolor": "white",
+                "borderwidth": 0,
+                "steps": [
+                    {"range": [0, 40], "color": "#fff4df"},
+                    {"range": [40, 75], "color": "#ffe3b5"},
+                    {"range": [75, 100], "color": "#ffd092"},
+                ],
+                "threshold": {
+                    "line": {"color": "#d62828", "width": 3},
+                    "thickness": 0.8,
+                    "value": 90,
+                },
+            },
+        )
+    )
+
+    gauge.update_layout(
+        margin={"l": 8, "r": 8, "t": 28, "b": 8},
+        paper_bgcolor="white",
+        height=220,
+    )
+    return gauge

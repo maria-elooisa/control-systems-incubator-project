@@ -1,8 +1,19 @@
 from pathlib import Path
+import base64
+from html import escape
 
 import streamlit as st
 
-from components.pwm_plot import append_sample, build_figure, init_history
+from backend.dashboard_logic import (
+    build_snapshot,
+    init_dashboard_state,
+    reset_system,
+    resolve_state_image,
+    tick,
+    toggle_fan_failure,
+    toggle_system_failure,
+)
+from components.pwm_plot import build_figure
 
 st.set_page_config(page_title="Control System Incubator", layout="wide")
 
@@ -15,103 +26,220 @@ def load_styles() -> None:
 
 load_styles()
 
-# Fixed mock state for now; replace with backend value later.
-backend_state = "ideal"  # accepted: "frio", "calor", "ideal"
+
+def render_incubator_asset(image_path: Path) -> None:
+    if not image_path.exists():
+        st.markdown("<div class='incubator-asset'></div>", unsafe_allow_html=True)
+        return
+
+    encoded_image = base64.b64encode(image_path.read_bytes()).decode("utf-8")
+    st.markdown(
+        f"""
+        <div class='incubator-asset'>
+          <img class='incubator-img' src='data:image/png;base64,{encoded_image}' alt='Estado incubadora' />
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+def sparkline_svg(values: list[float], color: str) -> str:
+    if not values:
+        return ""
+
+    width = 220
+    height = 62
+    min_v = min(values)
+    max_v = max(values)
+    span = max(max_v - min_v, 1e-6)
+
+    points = []
+    for idx, val in enumerate(values):
+        x = idx * (width / max(len(values) - 1, 1))
+        y = height - ((val - min_v) / span) * (height - 8) - 4
+        points.append(f"{x:.2f},{y:.2f}")
+
+    polyline = " ".join(points)
+    return (
+        "<svg viewBox='0 0 220 62' class='sparkline'>"
+        f"<polyline fill='none' stroke='{escape(color)}' stroke-width='3.2' "
+        "stroke-linecap='round' stroke-linejoin='round' "
+        f"points='{polyline}'></polyline></svg>"
+    )
 
 
-def resolve_state_image(state: str) -> Path:
-    state_map = {
-        "frio": "ft-frio.png",
-        "calor": "ft-calor.png",
-        "ideal": "ft-ideal.png",
-    }
-    normalized_state = state.lower().strip()
-    selected = state_map.get(normalized_state, state_map["ideal"])
-    return Path(__file__).parent / "components" / "img" / selected
+def render_kpi_card(title: str, value: str, icon: str, trend_values: list[float], trend_text: str, tone: str) -> None:
+    trend_color = {
+        "warm": "#F28C28",
+        "ok": "#2D9C49",
+        "alert": "#D62828",
+    }.get(tone, "#F28C28")
 
-st.markdown(
-    "<h1 style='text-align: center;'>Control System Incubator Dashboard</h1>",
-    unsafe_allow_html=True,
-)
-st.markdown(
-    "<p style='text-align: center;'>Monitoramento de PWM e temperatura para incubadora</p>",
-    unsafe_allow_html=True,
-)
+    sparkline = sparkline_svg(trend_values[-14:], trend_color)
+    st.markdown(
+        f"""
+        <div class='kpi-card tone-{escape(tone)}'>
+          <div class='kpi-top'>
+            <span class='kpi-icon'>{escape(icon)}</span>
+            <span class='kpi-title'>{escape(title)}</span>
+          </div>
+          <div class='kpi-value'>{escape(value)}</div>
+          <div class='kpi-trend'>{escape(trend_text)}</div>
+          {sparkline}
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
-if "history" not in st.session_state:
-    st.session_state.history = init_history(history_size=50)
 
-if "fan_failure" not in st.session_state:
-    st.session_state.fan_failure = False
+init_dashboard_state(st.session_state)
+tick(st.session_state)
+snapshot = build_snapshot(st.session_state)
 
-if "system_failure" not in st.session_state:
-    st.session_state.system_failure = False
+latest_pwm = snapshot["latest_pwm"]
+latest_temp = snapshot["latest_temp"]
+setpoint = snapshot["setpoint"]
+state_label = snapshot["state_label"]
+state_tone = snapshot["state_tone"]
+status_text = snapshot["status_text"]
+backend_state = snapshot["backend_state"]
 
-if "automatic_process" not in st.session_state:
-    st.session_state.automatic_process = False
+header_col_left, header_col_mid, header_col_right = st.columns([2.2, 1.2, 1.0], gap="small")
 
-# Simulated data is updated once every app rerun.
-st.session_state.history = append_sample(
-    st.session_state.history,
-    fan_failure=st.session_state.fan_failure,
-    system_failure=st.session_state.system_failure,
-)
+with header_col_left:
+    st.markdown(
+        """
+        <div class='hero-card'>
+          <div class='hero-title'>Incubator Control | Industrial Monitor</div>
+          <div class='hero-subtitle'>Monitoramento em tempo real de temperatura e atuação PWM</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
-latest_pwm = st.session_state.history["pwm"][-1]
-latest_temp = st.session_state.history["temp"][-1]
+with header_col_mid:
+    status_class = "status-ok"
+    if st.session_state.system_failure:
+        status_class = "status-alert"
+    elif st.session_state.fan_failure:
+        status_class = "status-warn"
 
-col_left_top, col_metrics, col_image_top = st.columns([0.5, 2.7, 1.2])
-with col_metrics:
-    col_m1, col_m2 = st.columns(2)
-    col_m1.metric("PWM atual", f"{latest_pwm:.1f}%")
-    col_m2.metric("Temperatura atual", f"{latest_temp:.2f} °C")
+    st.markdown(
+        f"""
+        <div class='status-card'>
+          <div class='status-label'>Status Operacional</div>
+          <div class='status-pill {status_class}'>{escape(status_text)}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
-with col_image_top:
-    st.markdown("<div class='status-image-top'>", unsafe_allow_html=True)
+with header_col_right:
     image_path = resolve_state_image(backend_state)
-    if image_path.exists():
-        st.image(str(image_path), width=100)
+    render_incubator_asset(image_path)
+
+st.markdown("<div class='section-gap-sm'></div>", unsafe_allow_html=True)
+
+kpi_c1, kpi_c2, kpi_c3, kpi_c4 = st.columns(4, gap="small")
+
+with kpi_c1:
+    render_kpi_card(
+        title="PWM Atual",
+        value=f"{latest_pwm:.1f}%",
+        icon="⚙",
+        trend_values=st.session_state.history["pwm"],
+        trend_text="Ajuste ativo",
+        tone="warm",
+    )
+
+with kpi_c2:
+    render_kpi_card(
+        title="Temperatura",
+        value=f"{latest_temp:.2f} °C",
+        icon="🌡",
+        trend_values=st.session_state.history["temp"],
+        trend_text="Leitura contínua",
+        tone="warm",
+    )
+
+with kpi_c3:
+    render_kpi_card(
+        title="Setpoint",
+        value=f"{setpoint:.1f} °C",
+        icon="🎯",
+        trend_values=[setpoint] * len(st.session_state.history["temp"]),
+        trend_text="Referência térmica",
+        tone="ok",
+    )
+
+with kpi_c4:
+    render_kpi_card(
+        title="Estado do Sistema",
+        value=state_label,
+        icon="🛡",
+        trend_values=st.session_state.history["temp"],
+        trend_text="Normal" if state_tone == "ok" else "Atenção",
+        tone="ok" if state_tone == "ok" else "alert",
+    )
+
+st.markdown("<div class='section-gap-md'></div>", unsafe_allow_html=True)
+
+main_col, side_col = st.columns([2.6, 1.0], gap="small")
+
+with main_col:
+    st.markdown(
+        """
+        <div class='panel-title'>
+          Tendência Dinâmica: PWM x Temperatura
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.plotly_chart(
+        build_figure(st.session_state.history),
+        width="stretch",
+        config={"displayModeBar": False},
+    )
+
+with side_col:
+    st.markdown("<div class='control-card'><div class='control-title'>Painel de Controle</div>", unsafe_allow_html=True)
+
+    if st.button("Falha da Ventoinha", key="btn_fan_failure", width="stretch"):
+        toggle_fan_failure(st.session_state)
+
+    if st.button("Falha do Sistema", key="btn_system_failure", width="stretch"):
+        toggle_system_failure(st.session_state)
+
+    if st.button("Reset", key="btn_reset", width="stretch"):
+        reset_system(st.session_state)
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    st.markdown("<div class='events-card'><div class='events-title'>Alarmes e Eventos</div>", unsafe_allow_html=True)
+    if st.session_state.events:
+        for event in st.session_state.events:
+            lvl = event["level"]
+            badge_class = "badge-info"
+            if lvl == "ok":
+                badge_class = "badge-ok"
+            elif lvl == "warn":
+                badge_class = "badge-warn"
+            elif lvl == "alert":
+                badge_class = "badge-alert"
+
+            st.markdown(
+                f"""
+                <div class='event-item'>
+                  <span class='event-time'>{escape(event['time'])}</span>
+                  <span class='event-text'>{escape(event['message'])}</span>
+                  <span class='event-badge {badge_class}'>{escape(lvl.upper())}</span>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
     st.markdown("</div>", unsafe_allow_html=True)
 
 if st.session_state.fan_failure:
-    st.error("Falha da ventoinha ativa: tendência de aumento de temperatura.")
+    st.toast("Falha da ventoinha ativa", icon="⚠")
 
 if st.session_state.system_failure:
-    st.error("Falha do sistema ativa: PWM forçado para 0%.")
-
-if st.session_state.automatic_process:
-    st.success("Processo automatico ativo: operacao em estado ideal.")
-
-st.markdown(
-    "<h3 style='text-align: center;'>PWM / Temperatura em tempo real</h3>",
-    unsafe_allow_html=True,
-)
-st.plotly_chart(build_figure(st.session_state.history), use_container_width=True)
-
-_, col_actions, _ = st.columns([0.8, 2.4, 0.8])
-with col_actions:
-    col_auto, col_sim = st.columns([1, 1.4])
-
-    with col_auto:
-        if st.button("Processo Automatico", type="primary", key="btn_auto", use_container_width=False):
-            st.session_state.automatic_process = True
-            st.session_state.fan_failure = False
-            st.session_state.system_failure = False
-
-    with col_sim:
-        sim_box = st.container(border=True)
-        with sim_box:
-            st.markdown("<h4 style='text-align: center;'>Simulacao</h4>", unsafe_allow_html=True)
-            if st.button("Falha da Ventoinha", key="btn_fan_failure", use_container_width=True):
-                st.session_state.automatic_process = False
-                st.session_state.fan_failure = not st.session_state.fan_failure
-
-            if st.button("Falha do Sistema", key="btn_system_failure", use_container_width=True):
-                st.session_state.automatic_process = False
-                st.session_state.system_failure = not st.session_state.system_failure
-
-        if st.session_state.fan_failure or st.session_state.system_failure:
-            if st.button("Parar", key="btn_stop", use_container_width=True):
-                st.session_state.automatic_process = False
-                st.session_state.fan_failure = False
-                st.session_state.system_failure = False
+    st.toast("Falha crítica do sistema", icon="🚨")
