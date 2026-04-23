@@ -3,6 +3,8 @@
   --accent-egg: #f6c945;
   --accent-heat: #f28c28;
   --alert-red: #d62828;
+  --ok-green: #2d9c49;
+  --ok-green-dark: #247f3b;
   --text-main: #222222;
 }
 
@@ -47,4 +49,50 @@ button[kind="secondary"] {
 button[kind="secondary"]:hover {
   border-color: #a91e1e;
   color: #a91e1e;
+}
+
+button[kind="primary"] {
+  background-color: var(--ok-green);
+  border: 1px solid var(--ok-green);
+  color: #ffffff;
+  font-weight: 700;
+  width: 150px;
+  height: 150px;
+  border-radius: 999px;
+  margin: 0 auto;
+  display: block;
+  white-space: normal;
+  line-height: 1.15;
+  padding: 0.85rem;
+}
+
+button[kind="primary"]:hover {
+  background-color: var(--ok-green-dark);
+  border-color: var(--ok-green-dark);
+  color: #ffffff;
+}
+
+.action-image-card {
+  border: 1px solid #ececec;
+  border-radius: 14px;
+  padding: 0.8rem;
+  margin-bottom: 1rem;
+  background: #fffdf7;
+  display: flex;
+  justify-content: center;
+}
+
+.simulation-box {
+  border: 1px solid #e9e9e9;
+  border-radius: 14px;
+  padding: 0.9rem;
+  background: #ffffff;
+  margin-bottom: 0.8rem;
+}
+
+.status-image-top {
+  margin-top: -2.2rem;
+  margin-bottom: -0.9rem;
+  display: flex;
+  justify-content: flex-end;
 }

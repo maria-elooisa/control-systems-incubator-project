@@ -47,6 +47,9 @@ if "fan_failure" not in st.session_state:
 if "system_failure" not in st.session_state:
     st.session_state.system_failure = False
 
+if "automatic_process" not in st.session_state:
+    st.session_state.automatic_process = False
+
 # Simulated data is updated once every app rerun.
 st.session_state.history = append_sample(
     st.session_state.history,
@@ -57,11 +60,18 @@ st.session_state.history = append_sample(
 latest_pwm = st.session_state.history["pwm"][-1]
 latest_temp = st.session_state.history["temp"][-1]
 
-_, col_metrics, _ = st.columns([1.4, 3.2, 1.4])
+col_left_top, col_metrics, col_image_top = st.columns([0.5, 2.7, 1.2])
 with col_metrics:
     col_m1, col_m2 = st.columns(2)
     col_m1.metric("PWM atual", f"{latest_pwm:.1f}%")
     col_m2.metric("Temperatura atual", f"{latest_temp:.2f} °C")
+
+with col_image_top:
+    st.markdown("<div class='status-image-top'>", unsafe_allow_html=True)
+    image_path = resolve_state_image(backend_state)
+    if image_path.exists():
+        st.image(str(image_path), width=100)
+    st.markdown("</div>", unsafe_allow_html=True)
 
 if st.session_state.fan_failure:
     st.error("Falha da ventoinha ativa: tendência de aumento de temperatura.")
@@ -69,23 +79,39 @@ if st.session_state.fan_failure:
 if st.session_state.system_failure:
     st.error("Falha do sistema ativa: PWM forçado para 0%.")
 
+if st.session_state.automatic_process:
+    st.success("Processo automatico ativo: operacao em estado ideal.")
+
 st.markdown(
     "<h3 style='text-align: center;'>PWM / Temperatura em tempo real</h3>",
     unsafe_allow_html=True,
 )
 st.plotly_chart(build_figure(st.session_state.history), use_container_width=True)
 
-col_left, col_center, col_right = st.columns([1, 1, 1])
+_, col_actions, _ = st.columns([0.8, 2.4, 0.8])
+with col_actions:
+    col_auto, col_sim = st.columns([1, 1.4])
 
-with col_center:
-    if st.button("Falha da Ventoinha", use_container_width=True):
-        st.session_state.fan_failure = not st.session_state.fan_failure
-    if st.button("Falha do Sistema", use_container_width=True):
-        st.session_state.system_failure = not st.session_state.system_failure
+    with col_auto:
+        if st.button("Processo Automatico", type="primary", key="btn_auto", use_container_width=False):
+            st.session_state.automatic_process = True
+            st.session_state.fan_failure = False
+            st.session_state.system_failure = False
 
-with col_right:
-    _, col_image_right = st.columns([0.35, 0.65])
-    with col_image_right:
-        image_path = resolve_state_image(backend_state)
-        if image_path.exists():
-            st.image(str(image_path), width=180)
+    with col_sim:
+        sim_box = st.container(border=True)
+        with sim_box:
+            st.markdown("<h4 style='text-align: center;'>Simulacao</h4>", unsafe_allow_html=True)
+            if st.button("Falha da Ventoinha", key="btn_fan_failure", use_container_width=True):
+                st.session_state.automatic_process = False
+                st.session_state.fan_failure = not st.session_state.fan_failure
+
+            if st.button("Falha do Sistema", key="btn_system_failure", use_container_width=True):
+                st.session_state.automatic_process = False
+                st.session_state.system_failure = not st.session_state.system_failure
+
+        if st.session_state.fan_failure or st.session_state.system_failure:
+            if st.button("Parar", key="btn_stop", use_container_width=True):
+                st.session_state.automatic_process = False
+                st.session_state.fan_failure = False
+                st.session_state.system_failure = False
