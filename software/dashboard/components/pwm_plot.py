@@ -45,6 +45,19 @@ def build_figure(history: dict) -> go.Figure:
     """Build Plotly figure with PWM and temperature."""
     fig = go.Figure()
 
+    # PWM digital references for control diagnostics.
+    for level in (0, 25, 50, 75, 100):
+        fig.add_hline(
+            y=level,
+            yref="y",
+            line_width=1,
+            line_dash="dot",
+            line_color="rgba(242, 140, 40, 0.45)",
+            annotation_text=f"{level}%",
+            annotation_position="top left",
+            annotation_font={"size": 10, "color": "#A65C0D"},
+        )
+
     fig.add_hrect(
         y0=36.7,
         y1=37.3,
@@ -62,10 +75,20 @@ def build_figure(history: dict) -> go.Figure:
         y=history["pwm"],
         mode="lines",
         name="PWM (%)",
-        line={"color": "#F28C28", "width": 3, "shape": "spline", "smoothing": 0.8},
+        line={"color": "#F28C28", "width": 3.4, "shape": "hv"},
         fill="tozeroy",
-        fillcolor="rgba(242, 140, 40, 0.12)",
+        fillcolor="rgba(242, 140, 40, 0.16)",
         yaxis="y1",
+    )
+
+    fig.add_scatter(
+        x=[history["x"][-1]],
+        y=[history["pwm"][-1]],
+        mode="markers",
+        marker={"size": 10, "color": "#F28C28", "line": {"color": "white", "width": 1.5}},
+        name="PWM atual",
+        yaxis="y1",
+        showlegend=False,
     )
 
     fig.add_scatter(
@@ -110,8 +133,12 @@ def build_figure(history: dict) -> go.Figure:
         yaxis={
             "title": "PWM (%)",
             "range": [0, 100],
-            "showgrid": False,
+            "showgrid": True,
+            "gridcolor": "rgba(242, 140, 40, 0.16)",
+            "griddash": "dot",
             "tickfont": {"size": 11},
+            "tickmode": "array",
+            "tickvals": [0, 25, 50, 75, 100],
         },
         yaxis2={
             "title": "Temperatura (°C)",
@@ -134,9 +161,15 @@ def build_pwm_gauge(pwm_value: float) -> go.Figure:
             mode="gauge+number",
             value=pwm_value,
             number={"suffix": "%", "font": {"size": 30, "color": "#2b2b2b"}},
-            title={"text": "Carga PWM", "font": {"size": 14, "color": "#5b5b5b"}},
             gauge={
-                "axis": {"range": [0, 100], "tickwidth": 1, "tickcolor": "#8c8c8c"},
+                "axis": {
+                    "range": [0, 100],
+                    "tickwidth": 1,
+                    "tickcolor": "#8c8c8c",
+                    "tickmode": "array",
+                    "tickvals": [0, 25, 50, 75, 100],
+                    "ticktext": ["0", "25", "50", "75", "100"],
+                },
                 "bar": {"color": "#F28C28", "thickness": 0.28},
                 "bgcolor": "white",
                 "borderwidth": 0,
@@ -155,8 +188,8 @@ def build_pwm_gauge(pwm_value: float) -> go.Figure:
     )
 
     gauge.update_layout(
-        margin={"l": 8, "r": 8, "t": 28, "b": 8},
+        margin={"l": 8, "r": 8, "t": 8, "b": 8},
         paper_bgcolor="white",
-        height=220,
+        height=185,
     )
     return gauge

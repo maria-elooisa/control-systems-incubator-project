@@ -198,6 +198,13 @@
   opacity: 0.95;
 }
 
+.pwm-gauge {
+  width: 100%;
+  height: 120px;
+  margin-top: 0.1rem;
+  display: block;
+}
+
 .tone-ok .kpi-value {
   color: #237f3d;
 }
