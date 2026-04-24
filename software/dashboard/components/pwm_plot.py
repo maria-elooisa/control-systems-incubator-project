@@ -53,9 +53,6 @@ def build_figure(history: dict) -> go.Figure:
             line_width=1,
             line_dash="dot",
             line_color="rgba(242, 140, 40, 0.45)",
-            annotation_text=f"{level}%",
-            annotation_position="top left",
-            annotation_font={"size": 10, "color": "#A65C0D"},
         )
 
     fig.add_hrect(
@@ -79,6 +76,7 @@ def build_figure(history: dict) -> go.Figure:
         fill="tozeroy",
         fillcolor="rgba(242, 140, 40, 0.16)",
         yaxis="y1",
+        showlegend=False,
     )
 
     fig.add_scatter(

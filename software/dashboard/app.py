@@ -42,7 +42,7 @@ def render_incubator_asset(image_path: Path) -> None:
         unsafe_allow_html=True,
     )
 
-def sparkline_svg(values: list[float], color: str) -> str:
+def sparkline_svg(values: list[float], color: str, stepped: bool = False) -> str:
     if not values:
         return ""
 
@@ -53,10 +53,15 @@ def sparkline_svg(values: list[float], color: str) -> str:
     span = max(max_v - min_v, 1e-6)
 
     points = []
+    step_x = width / max(len(values) - 1, 1)
+    last_y = None
     for idx, val in enumerate(values):
-        x = idx * (width / max(len(values) - 1, 1))
+        x = idx * step_x
         y = height - ((val - min_v) / span) * (height - 8) - 4
+        if stepped and last_y is not None:
+            points.append(f"{x:.2f},{last_y:.2f}")
         points.append(f"{x:.2f},{y:.2f}")
+        last_y = y
 
     polyline = " ".join(points)
     return (
@@ -67,14 +72,22 @@ def sparkline_svg(values: list[float], color: str) -> str:
     )
 
 
-def render_kpi_card(title: str, value: str, icon: str, trend_values: list[float], trend_text: str, tone: str) -> None:
+def render_kpi_card(
+    title: str,
+    value: str,
+    icon: str,
+    trend_values: list[float],
+    trend_text: str,
+    tone: str,
+    stepped: bool = False,
+) -> None:
     trend_color = {
         "warm": "#F28C28",
         "ok": "#2D9C49",
         "alert": "#D62828",
     }.get(tone, "#F28C28")
 
-    sparkline = sparkline_svg(trend_values[-14:], trend_color)
+    sparkline = sparkline_svg(trend_values[-14:], trend_color, stepped=stepped)
     st.markdown(
         f"""
         <div class='kpi-card tone-{escape(tone)}'>
@@ -149,6 +162,7 @@ with kpi_c1:
         trend_values=st.session_state.history["pwm"],
         trend_text="Ajuste ativo",
         tone="warm",
+        stepped=True,
     )
 
 with kpi_c2:
