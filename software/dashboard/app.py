@@ -4,7 +4,7 @@ from html import escape
 
 import streamlit as st
 
-from backend.dashboard_logic import (
+from backend.backend import (
     build_snapshot,
     init_dashboard_state,
     reset_system,
