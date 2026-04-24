@@ -6,7 +6,8 @@ def init_history(history_size: int = 50) -> dict:
     """Create simulated initial data for PWM and temperature history."""
     x = np.arange(history_size)
     pwm = np.random.uniform(40, 70, history_size)
-    temp = 37 + np.random.normal(0, 0.3, history_size)
+    temp = 36.5 + np.random.normal(0, 0.9, history_size)
+    temp = np.clip(temp, 15.0, 48.0)
 
     return {
         "x": x.tolist(),
@@ -21,19 +22,25 @@ def append_sample(history: dict, fan_failure: bool, system_failure: bool) -> dic
 
     if system_failure:
         next_pwm = 0.0
-        next_temp = max(20.0, history["temp"][-1] - np.random.uniform(0.1, 0.3))
+        next_temp = history["temp"][-1] - np.random.uniform(0.8, 1.8)
     elif fan_failure:
         next_pwm = np.random.uniform(60, 95)
-        next_temp = history["temp"][-1] + np.random.uniform(0.02, 0.12)
+        next_temp = history["temp"][-1] + np.random.uniform(0.25, 0.85)
     else:
-        next_pwm = np.random.uniform(40, 70)
-        target_temp = 37.0
-        next_temp = history["temp"][-1] + np.random.uniform(-0.08, 0.08)
-        next_temp += (target_temp - next_temp) * 0.15
+        next_pwm = np.clip(history["pwm"][-1] + np.random.uniform(-16, 16), 20, 95)
+        target_temp = 36.4 + np.random.uniform(-1.4, 0.8)
+        next_temp = history["temp"][-1] + np.random.uniform(-0.9, 0.7)
+        next_temp += (target_temp - next_temp) * 0.22
+
+        if np.random.rand() < 0.14:
+            next_temp -= np.random.uniform(3.5, 7.5)
+
+        if np.random.rand() < 0.06:
+            next_temp += np.random.uniform(1.8, 4.5)
 
     history["x"].append(float(next_x))
     history["pwm"].append(float(next_pwm))
-    history["temp"].append(float(next_temp))
+    history["temp"].append(float(np.clip(next_temp, 10.0, 50.0)))
 
     for key in ("x", "pwm", "temp"):
         history[key] = history[key][-50:]
@@ -142,7 +149,7 @@ def build_figure(history: dict) -> go.Figure:
             "title": "Temperatura (°C)",
             "overlaying": "y",
             "side": "right",
-            "range": [34, 41],
+            "range": [10, 50],
             "showgrid": False,
             "tickfont": {"size": 11},
         },

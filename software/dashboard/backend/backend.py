@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from time import monotonic
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -7,6 +8,10 @@ from typing import Any
 from components.pwm_plot import append_sample, init_history
 
 SETPOINT_C = 37.0
+TEMP_MIN_CRITICAL_C = 30.0
+TEMP_MAX_CRITICAL_C = 40.0
+DEFAULT_SAMPLE_INTERVAL_S = 1.0
+MAX_CATCH_UP_SAMPLES = 5
 
 
 def resolve_state_image(state: str) -> Path:
@@ -31,11 +36,17 @@ def init_dashboard_state(session_state: Any) -> None:
         session_state.system_failure = False
 
     if "automatic_process" not in session_state:
-        session_state.automatic_process = False
+        session_state.automatic_process = True
+
+    if "last_sample_monotonic" not in session_state:
+        session_state.last_sample_monotonic = monotonic()
 
     if "events" not in session_state:
         session_state.events = []
         add_event(session_state, "Dashboard iniciado", level="ok")
+
+    if "thermal_alert" not in session_state:
+        session_state.thermal_alert = "none"
 
 
 def add_event(session_state: Any, message: str, level: str = "info") -> None:
@@ -51,8 +62,43 @@ def tick(session_state: Any) -> None:
         system_failure=session_state.system_failure,
     )
 
+    latest_temp = session_state.history["temp"][-1]
+    thermal_alert = "none"
+    if latest_temp < TEMP_MIN_CRITICAL_C:
+        thermal_alert = "low"
+    elif latest_temp > TEMP_MAX_CRITICAL_C:
+        thermal_alert = "high"
+
+    if thermal_alert != session_state.thermal_alert:
+        if thermal_alert == "low":
+            add_event(session_state, "Temperatura crítica baixa (< 20°C)", level="alert")
+        elif thermal_alert == "high":
+            add_event(session_state, "Temperatura crítica alta (> 40°C)", level="alert")
+        elif session_state.thermal_alert != "none":
+            add_event(session_state, "Temperatura retornou para faixa segura", level="ok")
+
+    session_state.thermal_alert = thermal_alert
+
+
+def update_telemetry(session_state: Any, interval_s: float = DEFAULT_SAMPLE_INTERVAL_S) -> int:
+    """Generate new samples according to elapsed time and return generated count."""
+    now = monotonic()
+    elapsed = now - session_state.last_sample_monotonic
+    if elapsed < interval_s:
+        return 0
+
+    sample_count = min(int(elapsed // interval_s), MAX_CATCH_UP_SAMPLES)
+    for _ in range(sample_count):
+        tick(session_state)
+
+    session_state.last_sample_monotonic += sample_count * interval_s
+    return sample_count
+
 
 def compute_system_state(session_state: Any) -> tuple[str, str]:
+    latest_temp = session_state.history["temp"][-1]
+    if latest_temp < TEMP_MIN_CRITICAL_C or latest_temp > TEMP_MAX_CRITICAL_C:
+        return "Crítico", "alert"
     if session_state.system_failure:
         return "Alerta", "alert"
     if session_state.fan_failure:
@@ -60,16 +106,27 @@ def compute_system_state(session_state: Any) -> tuple[str, str]:
     return "Normal", "ok"
 
 
-def compute_backend_state(history: dict[str, list[float]]) -> str:
-    latest_temp = history["temp"][-1]
-    if latest_temp < 36.8:
+def compute_backend_state(session_state: Any) -> str:
+    """Resolve image state from the same logic used by system status."""
+    latest_temp = session_state.history["temp"][-1]
+
+    if latest_temp < TEMP_MIN_CRITICAL_C:
         return "frio"
-    if latest_temp > 37.2:
+    if latest_temp > TEMP_MAX_CRITICAL_C:
         return "calor"
+
+    if session_state.system_failure or session_state.fan_failure:
+        return "calor"
+
     return "ideal"
 
 
 def status_text(session_state: Any) -> str:
+    latest_temp = session_state.history["temp"][-1]
+    if latest_temp < TEMP_MIN_CRITICAL_C:
+        return "Temperatura Crítica Baixa"
+    if latest_temp > TEMP_MAX_CRITICAL_C:
+        return "Temperatura Crítica Alta"
     if session_state.system_failure:
         return "Falha Crítica"
     if session_state.fan_failure:
@@ -78,7 +135,6 @@ def status_text(session_state: Any) -> str:
 
 
 def toggle_fan_failure(session_state: Any) -> None:
-    session_state.automatic_process = False
     session_state.fan_failure = not session_state.fan_failure
     if session_state.fan_failure:
         add_event(session_state, "Falha da ventoinha acionada", level="warn")
@@ -87,7 +143,6 @@ def toggle_fan_failure(session_state: Any) -> None:
 
 
 def toggle_system_failure(session_state: Any) -> None:
-    session_state.automatic_process = False
     session_state.system_failure = not session_state.system_failure
     if session_state.system_failure:
         add_event(session_state, "Falha crítica do sistema acionada", level="alert")
@@ -96,9 +151,9 @@ def toggle_system_failure(session_state: Any) -> None:
 
 
 def reset_system(session_state: Any) -> None:
-    session_state.automatic_process = False
     session_state.fan_failure = False
     session_state.system_failure = False
+    session_state.thermal_alert = "none"
     add_event(session_state, "Reset geral executado", level="ok")
 
 
@@ -114,5 +169,5 @@ def build_snapshot(session_state: Any) -> dict[str, Any]:
         "state_label": state_label,
         "state_tone": state_tone,
         "status_text": status_text(session_state),
-        "backend_state": compute_backend_state(session_state.history),
+        "backend_state": compute_backend_state(session_state),
     }

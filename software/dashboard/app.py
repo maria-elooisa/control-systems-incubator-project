@@ -7,9 +7,9 @@ import streamlit as st
 from backend.backend import (
     build_snapshot,
     init_dashboard_state,
+    update_telemetry,
     reset_system,
     resolve_state_image,
-    tick,
     toggle_fan_failure,
     toggle_system_failure,
 )
@@ -105,155 +105,171 @@ def render_kpi_card(
 
 
 init_dashboard_state(st.session_state)
-tick(st.session_state)
-snapshot = build_snapshot(st.session_state)
 
-latest_pwm = snapshot["latest_pwm"]
-latest_temp = snapshot["latest_temp"]
-setpoint = snapshot["setpoint"]
-state_label = snapshot["state_label"]
-state_tone = snapshot["state_tone"]
-status_text = snapshot["status_text"]
-backend_state = snapshot["backend_state"]
+def render_dashboard_cycle() -> None:
+    if st.session_state.automatic_process:
+        update_telemetry(st.session_state, interval_s=1.0)
 
-header_col_left, header_col_mid, header_col_right = st.columns([2.2, 1.2, 1.0], gap="small")
+    snapshot = build_snapshot(st.session_state)
 
-with header_col_left:
-    st.markdown(
-        """
-        <div class='hero-card'>
-          <div class='hero-title'>Incubator Control | Industrial Monitor</div>
-          <div class='hero-subtitle'>Monitoramento em tempo real de temperatura e atuação PWM</div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    latest_pwm = snapshot["latest_pwm"]
+    latest_temp = snapshot["latest_temp"]
+    setpoint = snapshot["setpoint"]
+    state_label = snapshot["state_label"]
+    state_tone = snapshot["state_tone"]
+    status_text = snapshot["status_text"]
+    backend_state = snapshot["backend_state"]
 
-with header_col_mid:
-    status_class = "status-ok"
+    header_col_left, header_col_mid, header_col_right = st.columns([2.2, 1.2, 1.0], gap="small")
+
+    with header_col_left:
+        st.markdown(
+            """
+            <div class='hero-card'>
+              <div class='hero-title'>Incubator Control | Industrial Monitor</div>
+              <div class='hero-subtitle'>Monitoramento em tempo real de temperatura e atuação PWM</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    with header_col_mid:
+        status_class = {
+            "ok": "status-ok",
+            "warn": "status-warn",
+            "alert": "status-alert",
+        }.get(state_tone, "status-ok")
+
+        st.markdown(
+            f"""
+            <div class='status-card'>
+              <div class='status-label'>Status Operacional</div>
+              <div class='status-pill {status_class}'>{escape(status_text)}</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    with header_col_right:
+        image_path = resolve_state_image(backend_state)
+        render_incubator_asset(image_path)
+
+    st.markdown("<div class='section-gap-sm'></div>", unsafe_allow_html=True)
+
+    kpi_c1, kpi_c2, kpi_c3, kpi_c4 = st.columns(4, gap="small")
+
+    with kpi_c1:
+        render_kpi_card(
+            title="PWM Atual",
+            value=f"{latest_pwm:.1f}%",
+            icon="⚙",
+            trend_values=st.session_state.history["pwm"],
+            trend_text="Ajuste ativo",
+            tone="warm",
+            stepped=True,
+        )
+
+    with kpi_c2:
+        render_kpi_card(
+            title="Temperatura",
+            value=f"{latest_temp:.2f} °C",
+            icon="🌡",
+            trend_values=st.session_state.history["temp"],
+            trend_text="Leitura contínua",
+            tone="warm",
+        )
+
+    with kpi_c3:
+        render_kpi_card(
+            title="Setpoint",
+            value=f"{setpoint:.1f} °C",
+            icon="🎯",
+            trend_values=[setpoint] * len(st.session_state.history["temp"]),
+            trend_text="Referência térmica",
+            tone="ok",
+        )
+
+    with kpi_c4:
+        render_kpi_card(
+            title="Estado do Sistema",
+            value=state_label,
+            icon="🛡",
+            trend_values=st.session_state.history["temp"],
+            trend_text="Normal" if state_tone == "ok" else "Atenção",
+            tone="ok" if state_tone == "ok" else "alert",
+        )
+
+    st.markdown("<div class='section-gap-md'></div>", unsafe_allow_html=True)
+
+    main_col, side_col = st.columns([2.6, 1.0], gap="small")
+
+    with main_col:
+        st.markdown(
+            """
+            <div class='panel-title'>
+              Tendência Dinâmica: PWM x Temperatura
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        st.plotly_chart(
+            build_figure(st.session_state.history),
+            width="stretch",
+            config={"displayModeBar": False},
+        )
+
+    with side_col:
+        st.markdown("<div class='control-card'><div class='control-title'>Painel de Controle</div>", unsafe_allow_html=True)
+
+        auto_mode = st.toggle("Atualização automática", value=st.session_state.automatic_process, key="auto_mode")
+        st.session_state.automatic_process = auto_mode
+
+        if st.button("Falha da Ventoinha", key="btn_fan_failure", width="stretch"):
+            toggle_fan_failure(st.session_state)
+
+        if st.button("Falha do Sistema", key="btn_system_failure", width="stretch"):
+            toggle_system_failure(st.session_state)
+
+        if st.button("Reset", key="btn_reset", width="stretch"):
+            reset_system(st.session_state)
+
+        st.markdown("</div>", unsafe_allow_html=True)
+
+        st.markdown("<div class='events-card'><div class='events-title'>Alarmes e Eventos</div>", unsafe_allow_html=True)
+        if st.session_state.events:
+            for event in st.session_state.events:
+                lvl = event["level"]
+                badge_class = "badge-info"
+                if lvl == "ok":
+                    badge_class = "badge-ok"
+                elif lvl == "warn":
+                    badge_class = "badge-warn"
+                elif lvl == "alert":
+                    badge_class = "badge-alert"
+
+                st.markdown(
+                    f"""
+                    <div class='event-item'>
+                      <span class='event-time'>{escape(event['time'])}</span>
+                      <span class='event-text'>{escape(event['message'])}</span>
+                      <span class='event-badge {badge_class}'>{escape(lvl.upper())}</span>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    if st.session_state.fan_failure:
+        st.toast("Falha da ventoinha ativa", icon="⚠")
+
     if st.session_state.system_failure:
-        status_class = "status-alert"
-    elif st.session_state.fan_failure:
-        status_class = "status-warn"
+        st.toast("Falha crítica do sistema", icon="🚨")
 
-    st.markdown(
-        f"""
-        <div class='status-card'>
-          <div class='status-label'>Status Operacional</div>
-          <div class='status-pill {status_class}'>{escape(status_text)}</div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    if latest_temp < 20 or latest_temp > 40:
+        st.toast("Temperatura fora da faixa crítica (20°C - 40°C)", icon="🌡")
 
-with header_col_right:
-    image_path = resolve_state_image(backend_state)
-    render_incubator_asset(image_path)
 
-st.markdown("<div class='section-gap-sm'></div>", unsafe_allow_html=True)
-
-kpi_c1, kpi_c2, kpi_c3, kpi_c4 = st.columns(4, gap="small")
-
-with kpi_c1:
-    render_kpi_card(
-        title="PWM Atual",
-        value=f"{latest_pwm:.1f}%",
-        icon="⚙",
-        trend_values=st.session_state.history["pwm"],
-        trend_text="Ajuste ativo",
-        tone="warm",
-        stepped=True,
-    )
-
-with kpi_c2:
-    render_kpi_card(
-        title="Temperatura",
-        value=f"{latest_temp:.2f} °C",
-        icon="🌡",
-        trend_values=st.session_state.history["temp"],
-        trend_text="Leitura contínua",
-        tone="warm",
-    )
-
-with kpi_c3:
-    render_kpi_card(
-        title="Setpoint",
-        value=f"{setpoint:.1f} °C",
-        icon="🎯",
-        trend_values=[setpoint] * len(st.session_state.history["temp"]),
-        trend_text="Referência térmica",
-        tone="ok",
-    )
-
-with kpi_c4:
-    render_kpi_card(
-        title="Estado do Sistema",
-        value=state_label,
-        icon="🛡",
-        trend_values=st.session_state.history["temp"],
-        trend_text="Normal" if state_tone == "ok" else "Atenção",
-        tone="ok" if state_tone == "ok" else "alert",
-    )
-
-st.markdown("<div class='section-gap-md'></div>", unsafe_allow_html=True)
-
-main_col, side_col = st.columns([2.6, 1.0], gap="small")
-
-with main_col:
-    st.markdown(
-        """
-        <div class='panel-title'>
-          Tendência Dinâmica: PWM x Temperatura
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-    st.plotly_chart(
-        build_figure(st.session_state.history),
-        width="stretch",
-        config={"displayModeBar": False},
-    )
-
-with side_col:
-    st.markdown("<div class='control-card'><div class='control-title'>Painel de Controle</div>", unsafe_allow_html=True)
-
-    if st.button("Falha da Ventoinha", key="btn_fan_failure", width="stretch"):
-        toggle_fan_failure(st.session_state)
-
-    if st.button("Falha do Sistema", key="btn_system_failure", width="stretch"):
-        toggle_system_failure(st.session_state)
-
-    if st.button("Reset", key="btn_reset", width="stretch"):
-        reset_system(st.session_state)
-
-    st.markdown("</div>", unsafe_allow_html=True)
-
-    st.markdown("<div class='events-card'><div class='events-title'>Alarmes e Eventos</div>", unsafe_allow_html=True)
-    if st.session_state.events:
-        for event in st.session_state.events:
-            lvl = event["level"]
-            badge_class = "badge-info"
-            if lvl == "ok":
-                badge_class = "badge-ok"
-            elif lvl == "warn":
-                badge_class = "badge-warn"
-            elif lvl == "alert":
-                badge_class = "badge-alert"
-
-            st.markdown(
-                f"""
-                <div class='event-item'>
-                  <span class='event-time'>{escape(event['time'])}</span>
-                  <span class='event-text'>{escape(event['message'])}</span>
-                  <span class='event-badge {badge_class}'>{escape(lvl.upper())}</span>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-    st.markdown("</div>", unsafe_allow_html=True)
-
-if st.session_state.fan_failure:
-    st.toast("Falha da ventoinha ativa", icon="⚠")
-
-if st.session_state.system_failure:
-    st.toast("Falha crítica do sistema", icon="🚨")
+if hasattr(st, "fragment"):
+    st.fragment(run_every="1s")(render_dashboard_cycle)()
+else:
+    render_dashboard_cycle()
