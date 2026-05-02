@@ -4,6 +4,7 @@ from time import monotonic
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+from backend.data_source import get_telemetry
 
 from components.pwm_plot import append_sample, init_history
 
@@ -56,11 +57,17 @@ def add_event(session_state: Any, message: str, level: str = "info") -> None:
 
 
 def tick(session_state: Any) -> None:
-    session_state.history = append_sample(
-        session_state.history,
-        fan_failure=session_state.fan_failure,
-        system_failure=session_state.system_failure,
-    )
+    data = get_telemetry()
+
+    temp = data["temp"]
+    pwm = data["pwm"]
+
+    session_state.history["x"].append(session_state.history["x"][-1] + 1)
+    session_state.history["temp"].append(temp)
+    session_state.history["pwm"].append(pwm)
+
+    for key in ("x", "pwm", "temp"):
+        session_state.history[key] = session_state.history[key][-50:]
 
     latest_temp = session_state.history["temp"][-1]
     thermal_alert = "none"

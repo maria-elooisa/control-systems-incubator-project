@@ -16,7 +16,7 @@ def init_history(history_size: int = 50) -> dict:
     }
 
 
-def append_sample(history: dict, fan_failure: bool, system_failure: bool) -> dict:
+def append_sample(history: dict, temp=None, pwm=None, fan_failure=False, system_failure=False) -> dict:
     """Append one new sample while keeping a fixed-size history."""
     next_x = history["x"][-1] + 1 if history["x"] else 0
 
