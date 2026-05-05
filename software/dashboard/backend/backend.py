@@ -7,6 +7,9 @@ from typing import Any
 from backend.data_source import get_telemetry
 
 from components.pwm_plot import append_sample, init_history
+import logging
+
+logger = logging.getLogger(__name__)
 
 SETPOINT_C = 37.0
 TEMP_MIN_CRITICAL_C = 30.0
@@ -48,6 +51,13 @@ def init_dashboard_state(session_state: Any) -> None:
 
     if "thermal_alert" not in session_state:
         session_state.thermal_alert = "none"
+    # previous-state trackers to avoid repeated UI notifications
+    if "_prev_fan_failure" not in session_state:
+        session_state._prev_fan_failure = session_state.fan_failure
+    if "_prev_system_failure" not in session_state:
+        session_state._prev_system_failure = session_state.system_failure
+    if "_prev_thermal_alert" not in session_state:
+        session_state._prev_thermal_alert = session_state.thermal_alert
 
 
 def add_event(session_state: Any, message: str, level: str = "info") -> None:
@@ -61,6 +71,9 @@ def tick(session_state: Any) -> None:
 
     temp = data["temp"]
     pwm = data["pwm"]
+
+    # log dos valores recebidos para inspeção no terminal
+    logger.info(f"tick -> temp={temp!r}, pwm={pwm!r}")
 
     session_state.history["x"].append(session_state.history["x"][-1] + 1)
     session_state.history["temp"].append(temp)
@@ -99,6 +112,9 @@ def update_telemetry(session_state: Any, interval_s: float = DEFAULT_SAMPLE_INTE
         tick(session_state)
 
     session_state.last_sample_monotonic += sample_count * interval_s
+
+    logger.info(f"update_telemetry -> elapsed={elapsed:.3f}s, sample_count={sample_count}")
+
     return sample_count
 
 

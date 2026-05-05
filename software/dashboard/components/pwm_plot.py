@@ -52,6 +52,10 @@ def build_figure(history: dict) -> go.Figure:
     """Build Plotly figure with PWM and temperature."""
     fig = go.Figure()
 
+    # trim history to a smaller window for micro-variation visibility
+    display_samples = 25
+    trimmed = {k: (history[k][-display_samples:] if len(history.get(k, [])) > display_samples else history.get(k, [])) for k in ("x", "pwm", "temp")}
+
     # PWM digital references for control diagnostics.
     for level in (0, 25, 50, 75, 100):
         fig.add_hline(
@@ -75,8 +79,8 @@ def build_figure(history: dict) -> go.Figure:
     )
 
     fig.add_scatter(
-        x=history["x"],
-        y=history["pwm"],
+        x=trimmed["x"],
+        y=trimmed["pwm"],
         mode="lines",
         name="PWM (%)",
         line={"color": "#F28C28", "width": 3.4, "shape": "hv"},
@@ -87,8 +91,8 @@ def build_figure(history: dict) -> go.Figure:
     )
 
     fig.add_scatter(
-        x=[history["x"][-1]],
-        y=[history["pwm"][-1]],
+        x=[trimmed["x"][-1]] if trimmed["x"] else [0],
+        y=[trimmed["pwm"][-1]] if trimmed["pwm"] else [0],
         mode="markers",
         marker={"size": 10, "color": "#F28C28", "line": {"color": "white", "width": 1.5}},
         name="PWM atual",
@@ -97,8 +101,8 @@ def build_figure(history: dict) -> go.Figure:
     )
 
     fig.add_scatter(
-        x=history["x"],
-        y=history["temp"],
+        x=trimmed["x"],
+        y=trimmed["temp"],
         mode="lines",
         name="Temperatura (°C)",
         line={"color": "#D1491E", "width": 3, "shape": "spline", "smoothing": 0.8},
@@ -106,8 +110,8 @@ def build_figure(history: dict) -> go.Figure:
     )
 
     fig.add_scatter(
-        x=[history["x"][-1]],
-        y=[history["temp"][-1]],
+        x=[trimmed["x"][-1]] if trimmed["x"] else [0],
+        y=[trimmed["temp"][-1]] if trimmed["temp"] else [0],
         mode="markers",
         marker={"size": 9, "color": "#D1491E", "line": {"color": "white", "width": 1.5}},
         name="Temp. atual",
@@ -149,11 +153,17 @@ def build_figure(history: dict) -> go.Figure:
             "title": "Temperatura (°C)",
             "overlaying": "y",
             "side": "right",
-            "range": [10, 50],
+            "range": [0, 40],
+            "tickvals": [0, 20, 30, 40],
             "showgrid": False,
             "tickfont": {"size": 11},
         },
-        transition={"duration": 500, "easing": "cubic-in-out"},
+        # disable long transition to avoid visual 'flicker' on frequent updates
+        transition={"duration": 0},
+        # preserve UI state (zoom/selection) across re-renders
+        uirevision="static",
+        # make the chart larger to improve visibility of micro-variations
+        height=420,
     )
 
     return fig

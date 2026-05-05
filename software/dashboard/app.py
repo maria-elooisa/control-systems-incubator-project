@@ -14,6 +14,11 @@ from backend.backend import (
     toggle_system_failure,
 )
 from components.pwm_plot import build_figure
+import logging
+
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 st.set_page_config(page_title="Control System Incubator", layout="wide")
 
@@ -32,7 +37,18 @@ def render_incubator_asset(image_path: Path) -> None:
         st.markdown("<div class='incubator-asset'></div>", unsafe_allow_html=True)
         return
 
-    encoded_image = base64.b64encode(image_path.read_bytes()).decode("utf-8")
+    # cache base64 encoding in session_state to avoid re-encoding every render
+    cached_path = st.session_state.get("_incubator_cached_path")
+    cached_b64 = st.session_state.get("_incubator_cached_b64")
+
+    current_path_str = str(image_path.resolve())
+    if cached_path == current_path_str and cached_b64:
+        encoded_image = cached_b64
+    else:
+        encoded_image = base64.b64encode(image_path.read_bytes()).decode("utf-8")
+        st.session_state["_incubator_cached_path"] = current_path_str
+        st.session_state["_incubator_cached_b64"] = encoded_image
+
     st.markdown(
         f"""
         <div class='incubator-asset'>
@@ -214,7 +230,7 @@ def render_dashboard_cycle() -> None:
         )
         st.plotly_chart(
             build_figure(st.session_state.history),
-            width="stretch",
+            use_container_width=True,
             config={"displayModeBar": False},
         )
 
@@ -260,16 +276,26 @@ def render_dashboard_cycle() -> None:
         st.markdown("</div>", unsafe_allow_html=True)
 
     if st.session_state.fan_failure:
-        st.toast("Falha da ventoinha ativa", icon="⚠")
+        if st.session_state._prev_fan_failure != st.session_state.fan_failure:
+            st.toast("Falha da ventoinha ativa", icon="⚠")
+        st.session_state._prev_fan_failure = st.session_state.fan_failure
 
     if st.session_state.system_failure:
-        st.toast("Falha crítica do sistema", icon="🚨")
+        if st.session_state._prev_system_failure != st.session_state.system_failure:
+            st.toast("Falha crítica do sistema", icon="🚨")
+        st.session_state._prev_system_failure = st.session_state.system_failure
 
-    if latest_temp < 20 or latest_temp > 40:
-        st.toast("Temperatura fora da faixa crítica (20°C - 40°C)", icon="🌡")
+    # only show temp toast when alert state changes (avoid repeating every render)
+    temp_alert_now = "low" if latest_temp < 20 else ("high" if latest_temp > 40 else "none")
+    if temp_alert_now != st.session_state._prev_thermal_alert:
+        if temp_alert_now != "none":
+            st.toast("Temperatura fora da faixa crítica (20°C - 40°C)", icon="🌡")
+        st.session_state._prev_thermal_alert = temp_alert_now
 
 
 if hasattr(st, "fragment"):
     st.fragment(run_every="1s")(render_dashboard_cycle)()
 else:
     render_dashboard_cycle()
+
+logger.info("Dashboard initialized")
