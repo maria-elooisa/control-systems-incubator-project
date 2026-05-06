@@ -4,7 +4,7 @@ from time import monotonic
 from datetime import datetime
 from pathlib import Path
 from typing import Any
-from backend.data_source import get_telemetry
+from .data_source import get_telemetry
 
 from components.pwm_plot import append_sample, init_history
 import logging
