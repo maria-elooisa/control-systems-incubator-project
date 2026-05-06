@@ -53,7 +53,7 @@ def build_figure(history: dict) -> go.Figure:
     fig = go.Figure()
 
     # trim history to a smaller window for micro-variation visibility
-    display_samples = 25
+    display_samples = 10
     trimmed = {k: (history[k][-display_samples:] if len(history.get(k, [])) > display_samples else history.get(k, [])) for k in ("x", "pwm", "temp")}
 
     # PWM digital references for control diagnostics.
@@ -154,7 +154,7 @@ def build_figure(history: dict) -> go.Figure:
             "overlaying": "y",
             "side": "right",
             "range": [0, 40],
-            "tickvals": [0, 20, 30, 40],
+            "tickvals": [0, 10, 20, 30, 40],
             "showgrid": False,
             "tickfont": {"size": 11},
         },

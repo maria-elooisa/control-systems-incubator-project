@@ -230,7 +230,7 @@ def render_dashboard_cycle() -> None:
         )
         st.plotly_chart(
             build_figure(st.session_state.history),
-            use_container_width=True,
+            width="stretch",
             config={"displayModeBar": False},
         )
 
