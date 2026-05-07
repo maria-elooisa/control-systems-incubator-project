@@ -226,18 +226,6 @@ def render_dashboard_cycle() -> None:
     with side_col:
         st.markdown("<div class='control-card'><div class='control-title'>Painel de Controle</div>", unsafe_allow_html=True)
 
-        auto_mode = st.toggle("Atualização automática", value=st.session_state.automatic_process, key="auto_mode")
-        st.session_state.automatic_process = auto_mode
-
-        if st.button("Falha da Ventoinha", key="btn_fan_failure", width="stretch"):
-            toggle_fan_failure(st.session_state)
-
-        if st.button("Falha do Sistema", key="btn_system_failure", width="stretch"):
-            toggle_system_failure(st.session_state)
-
-        if st.button("Reset", key="btn_reset", width="stretch"):
-            reset_system(st.session_state)
-
         st.markdown("</div>", unsafe_allow_html=True)
 
         st.markdown("<div class='events-card'><div class='events-title'>Alarmes e Eventos</div>", unsafe_allow_html=True)
