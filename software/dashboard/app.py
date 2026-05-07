@@ -172,20 +172,9 @@ def render_dashboard_cycle() -> None:
 
     st.markdown("<div class='section-gap-sm'></div>", unsafe_allow_html=True)
 
-    kpi_c1, kpi_c2, kpi_c3, kpi_c4 = st.columns(4, gap="small")
+    kpi_c1, kpi_c2, kpi_c3 = st.columns(3, gap="small")
 
     with kpi_c1:
-        render_kpi_card(
-            title="PWM Atual",
-            value=f"{latest_pwm:.1f}%",
-            icon="⚙",
-            trend_values=st.session_state.history["pwm"],
-            trend_text="Ajuste ativo",
-            tone="warm",
-            stepped=True,
-        )
-
-    with kpi_c2:
         render_kpi_card(
             title="Temperatura",
             value=f"{latest_temp:.2f} °C",
@@ -195,7 +184,7 @@ def render_dashboard_cycle() -> None:
             tone="warm",
         )
 
-    with kpi_c3:
+    with kpi_c2:
         render_kpi_card(
             title="Setpoint",
             value=f"{setpoint:.1f} °C",
@@ -205,7 +194,7 @@ def render_dashboard_cycle() -> None:
             tone="ok",
         )
 
-    with kpi_c4:
+    with kpi_c3:
         render_kpi_card(
             title="Estado do Sistema",
             value=state_label,
