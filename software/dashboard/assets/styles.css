@@ -238,22 +238,42 @@
   border-radius: 18px;
   background: var(--panel);
   box-shadow: var(--shadow-soft);
-  padding: 0.68rem;
+  padding: 0.9rem 0.95rem 1rem;
   margin-top: 0;
 }
 
-.control-content-wrapper {
+.control-body {
   display: flex;
-  align-items: flex-start;
-  gap: 1rem;
-  margin-bottom: 0.8rem;
+  flex-direction: column;
+  gap: 0.95rem;
+  padding-top: 0.22rem;
+}
+
+.control-summary {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 0.9rem;
+  align-items: stretch;
+  padding: 0.85rem 0.85rem 0.8rem;
+  border: 1px solid #f1efe8;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #fffdfa 0%, #fff6e8 100%);
 }
 
 .pwm-display-left {
   display: flex;
   flex-direction: column;
-  gap: 0.3rem;
-  min-width: 80px;
+  gap: 0.38rem;
+  min-width: 0;
+}
+
+.pwm-value-label,
+.pwm-output-label {
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .pwm-value-large {
@@ -264,29 +284,44 @@
   letter-spacing: 0.02em;
 }
 
-.pwm-value-meta {
-  color: var(--text-muted);
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-}
-
 .pwm-value-seconds {
   color: var(--warn);
-  font-size: 0.85rem;
+  font-size: 0.78rem;
   font-weight: 700;
-  margin-top: 0.2rem;
+  margin-top: 0.12rem;
+}
+
+.pwm-display-right {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 0.2rem;
+  padding-left: 0.35rem;
+  border-left: 1px solid #efe5d3;
+}
+
+.pwm-output-value {
+  color: #2f3a2f;
+  font-size: 1.45rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.pwm-output-meta {
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  font-weight: 600;
 }
 
 .pwm-input-label {
   color: var(--text-muted);
-  font-size: 0.73rem;
+  font-size: 0.7rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.03em;
-  margin-top: 0.6rem;
-  margin-bottom: 0.4rem;
+  margin-top: 0.05rem;
+  margin-bottom: 0.55rem;
 }
 
 .control-title,
@@ -296,7 +331,119 @@
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  margin-bottom: 0.55rem;
+  margin-bottom: 0.85rem;
+}
+
+.control-card .stNumberInput input {
+  border-radius: 12px;
+}
+
+.control-card [data-testid="stSlider"] {
+  display: block;
+  width: 100%;
+  margin: 0.15rem 0 0.2rem;
+  padding: 0;
+}
+
+.pwm-slider-wrap {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  gap: 0.15rem;
+  position: relative; /* permitir posição absoluta da legenda */
+  padding-bottom: 1.1rem; /* espaço para legenda abaixo do slider */
+}
+
+.pwm-slider-legend {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  width: 100%;
+  padding: 0 0.18rem 0.02rem;
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.pwm-slider-legend span:first-child {
+  justify-self: start;
+}
+
+.pwm-slider-legend span:last-child {
+  justify-self: end;
+}
+
+/* Forçar esconder quaisquer marcas/labels remanescentes do rc-slider/Streamlit
+   sem depender de escopo; isso remove o "100" central que aparece pelo slider
+   de biblioteca. Colocado no fim para garantir precedência. */
+.rc-slider-mark,
+.rc-slider-mark-text,
+.rc-slider-step,
+.rc-slider-tooltip,
+.rc-tooltip,
+.rc-slider-handle-value,
+.stSliderValue {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* Re-expor explicitamente a legenda customizada que ficava oculta por regras
+   globais inadvertidas: */
+.pwm-slider-legend {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0.06rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 0.18rem;
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+.pwm-slider-legend span {
+  display: inline-block !important;
+}
+
+.control-card [data-testid="stSlider"] > div,
+.control-card [data-testid="stSlider"] > div > div,
+.control-card [data-testid="stSlider"] > div > div > div {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+.control-card [data-testid="stSlider"] label,
+.control-card [data-testid="stSlider"] span,
+.control-card [data-testid="stSlider"] p {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  line-height: 0 !important;
+}
+
+.control-card [data-testid="stSlider"] [data-baseweb="tooltip"],
+.control-card [data-testid="stSlider"] [data-baseweb="slider"] [data-baseweb="tooltip"] {
+  display: none !important;
+}
+
+.control-card [data-testid="stSliderThumbValue"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+.control-card [data-testid="stNumberInput"] {
+  margin-bottom: 0.15rem;
+}
+
+.control-card .stMarkdown {
+  margin-bottom: 0;
 }
 
 .event-item {
@@ -406,8 +553,7 @@
 
 /* Customize Streamlit slider for PWM control */
 [data-testid="stSlider"] {
-  display: flex;
-  justify-content: center;
+  display: block;
   width: 100%;
 }
 
@@ -424,6 +570,21 @@
   outline: none;
   -webkit-appearance: none;
   appearance: none;
+}
+
+/* Hide Streamlit/BaseWeb/rc-slider auto labels and tooltips so we only show
+   the custom legend below the slider (0 at start, 100 at end). */
+[data-testid="stSlider"] .rc-slider-mark,
+[data-testid="stSlider"] .rc-slider-mark-text,
+[data-testid="stSlider"] .rc-slider-tooltip,
+[data-testid="stSlider"] .rc-tooltip,
+[data-testid="stSlider"] [data-baseweb="tooltip"],
+[data-testid="stSlider"] [data-testid="stSliderThumbValue"],
+[data-testid="stSlider"] .stSliderValue {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
 }
 
 [data-testid="stSlider"] input[type="range"]::-webkit-slider-thumb {

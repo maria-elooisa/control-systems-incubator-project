@@ -70,20 +70,27 @@ def render_pwm_slider() -> None:
     
     # Build card structure similar to KPI cards
     max_indicator = "⚡" if is_max else ""
-    
+
     st.markdown(
         f"""
-        <div class='control-content-wrapper'>
+        <div class='control-summary'>
             <div class='pwm-display-left'>
+                <div class='pwm-value-label'>Percentual selecionado</div>
                 <div class='pwm-value-large'>{current_value}%</div>
-                <div class='pwm-value-meta'>{current_value * 2} PWM</div>
-                <div class='pwm-value-seconds'>{seconds_value}s {max_indicator}</div>
+                <div class='pwm-value-seconds'>{seconds_value}s de referência {max_indicator}</div>
             </div>
+            <div class='pwm-display-right'>
+                <div class='pwm-output-label'>Saída PWM</div>
+                <div class='pwm-output-value'>{current_value * 2}</div>
+                <div class='pwm-output-meta'>valor enviado ao backend</div>
+            </div>
+        </div>
         """,
         unsafe_allow_html=True,
     )
     
     # Slider control
+    st.markdown("<div class='pwm-slider-wrap'>", unsafe_allow_html=True)
     new_value = st.slider(
         "Ajuste o PWM",
         min_value=0,
@@ -93,12 +100,23 @@ def render_pwm_slider() -> None:
         label_visibility="collapsed",
         key="pwm_slider_streamlit",
     )
+    # Renderizamos uma legenda customizada posicionada via CSS para garantir
+    # que "0" fique na extremidade esquerda e "100" na extremidade direita.
+    st.markdown(
+        """
+        <div class='pwm-slider-legend'>
+            <span>0</span>
+            <span>100</span>
+        </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
     
     # Update backend when slider changes
     if new_value != current_value:
         update_pwm_user(st.session_state, new_value)
     
-    # Input digital for direct value entry
     st.markdown("<div class='pwm-input-label'>Entrada Digital do Professor</div>", unsafe_allow_html=True)
     
     col_input1, col_input2 = st.columns(2, gap="small")
@@ -112,13 +130,12 @@ def render_pwm_slider() -> None:
             step=1,
             key="pwm_digital_input"
         )
-        # Convert PWM back to percentage (pwm_input / 2)
         percentage_from_input = min(100, max(0, int(pwm_input / 2)))
         if percentage_from_input != current_value:
             update_pwm_user(st.session_state, percentage_from_input)
     
     with col_input2:
-        seconds_input = st.number_input(
+        st.number_input(
             "Equivalente em Segundos",
             min_value=0.0,
             max_value=60.0,
@@ -299,7 +316,9 @@ def render_dashboard_cycle() -> None:
     with top_right:
         st.markdown("<div class='control-card'><div class='control-title'>Painel de Controle</div>", unsafe_allow_html=True)
 
+        st.markdown("<div class='control-body'>", unsafe_allow_html=True)
         render_pwm_slider()
+        st.markdown("</div>", unsafe_allow_html=True)
 
         st.markdown("</div>", unsafe_allow_html=True)
 
