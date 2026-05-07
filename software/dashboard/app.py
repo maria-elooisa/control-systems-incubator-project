@@ -12,6 +12,7 @@ from backend.backend import (
     resolve_state_image,
     toggle_fan_failure,
     toggle_system_failure,
+    update_pwm_user,
 )
 from components.pwm_plot import build_figure
 import logging
@@ -57,6 +58,78 @@ def render_incubator_asset(image_path: Path) -> None:
         """,
         unsafe_allow_html=True,
     )
+
+
+def render_pwm_slider() -> None:
+    """Render PWM control card with digital input and slider."""
+    current_value = st.session_state.pwm_slider_value
+    is_max = current_value >= 100
+    
+    # Calculate seconds (assuming 100% = 60 seconds, adjust as needed)
+    seconds_value = round((current_value / 100) * 60, 1)
+    
+    # Build card structure similar to KPI cards
+    max_indicator = "⚡" if is_max else ""
+    
+    st.markdown(
+        f"""
+        <div class='control-content-wrapper'>
+            <div class='pwm-display-left'>
+                <div class='pwm-value-large'>{current_value}%</div>
+                <div class='pwm-value-meta'>{current_value * 2} PWM</div>
+                <div class='pwm-value-seconds'>{seconds_value}s {max_indicator}</div>
+            </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    
+    # Slider control
+    new_value = st.slider(
+        "Ajuste o PWM",
+        min_value=0,
+        max_value=100,
+        value=current_value,
+        step=1,
+        label_visibility="collapsed",
+        key="pwm_slider_streamlit",
+    )
+    
+    # Update backend when slider changes
+    if new_value != current_value:
+        update_pwm_user(st.session_state, new_value)
+    
+    # Input digital for direct value entry
+    st.markdown("<div class='pwm-input-label'>Entrada Digital do Professor</div>", unsafe_allow_html=True)
+    
+    col_input1, col_input2 = st.columns(2, gap="small")
+    
+    with col_input1:
+        pwm_input = st.number_input(
+            "Valor PWM (0-200)",
+            min_value=0,
+            max_value=200,
+            value=current_value * 2,
+            step=1,
+            key="pwm_digital_input"
+        )
+        # Convert PWM back to percentage (pwm_input / 2)
+        percentage_from_input = min(100, max(0, int(pwm_input / 2)))
+        if percentage_from_input != current_value:
+            update_pwm_user(st.session_state, percentage_from_input)
+    
+    with col_input2:
+        seconds_input = st.number_input(
+            "Equivalente em Segundos",
+            min_value=0.0,
+            max_value=60.0,
+            value=seconds_value,
+            step=0.1,
+            key="seconds_display",
+            disabled=True
+        )
+    
+    st.markdown("</div>", unsafe_allow_html=True)
+
 
 def sparkline_svg(values: list[float], color: str, stepped: bool = False) -> str:
     if not values:
@@ -172,43 +245,43 @@ def render_dashboard_cycle() -> None:
 
     st.markdown("<div class='section-gap-sm'></div>", unsafe_allow_html=True)
 
-    kpi_c1, kpi_c2, kpi_c3 = st.columns(3, gap="small")
+    top_left, top_right = st.columns([2.7, 1.0], gap="small")
 
-    with kpi_c1:
-        render_kpi_card(
-            title="Temperatura",
-            value=f"{latest_temp:.2f} °C",
-            icon="🌡",
-            trend_values=st.session_state.history["temp"],
-            trend_text="Leitura contínua",
-            tone="warm",
-        )
+    with top_left:
+        kpi_c1, kpi_c2, kpi_c3 = st.columns([0.9, 0.9, 0.9], gap="small")
 
-    with kpi_c2:
-        render_kpi_card(
-            title="Setpoint",
-            value=f"{setpoint:.1f} °C",
-            icon="🎯",
-            trend_values=[setpoint] * len(st.session_state.history["temp"]),
-            trend_text="Referência térmica",
-            tone="ok",
-        )
+        with kpi_c1:
+            render_kpi_card(
+                title="Temperatura",
+                value=f"{latest_temp:.2f} °C",
+                icon="🌡",
+                trend_values=st.session_state.history["temp"],
+                trend_text="Leitura contínua",
+                tone="warm",
+            )
 
-    with kpi_c3:
-        render_kpi_card(
-            title="Estado do Sistema",
-            value=state_label,
-            icon="🛡",
-            trend_values=st.session_state.history["temp"],
-            trend_text="Normal" if state_tone == "ok" else "Atenção",
-            tone="ok" if state_tone == "ok" else "alert",
-        )
+        with kpi_c2:
+            render_kpi_card(
+                title="Setpoint",
+                value=f"{setpoint:.1f} °C",
+                icon="🎯",
+                trend_values=[setpoint] * len(st.session_state.history["temp"]),
+                trend_text="Referência térmica",
+                tone="ok",
+            )
 
-    st.markdown("<div class='section-gap-md'></div>", unsafe_allow_html=True)
+        with kpi_c3:
+            render_kpi_card(
+                title="Estado do Sistema",
+                value=state_label,
+                icon="🛡",
+                trend_values=st.session_state.history["temp"],
+                trend_text="Normal" if state_tone == "ok" else "Atenção",
+                tone="ok" if state_tone == "ok" else "alert",
+            )
 
-    main_col, side_col = st.columns([2.6, 1.0], gap="small")
+        st.markdown("<div class='section-gap-md'></div>", unsafe_allow_html=True)
 
-    with main_col:
         st.markdown(
             """
             <div class='panel-title'>
@@ -223,8 +296,10 @@ def render_dashboard_cycle() -> None:
             config={"displayModeBar": False},
         )
 
-    with side_col:
+    with top_right:
         st.markdown("<div class='control-card'><div class='control-title'>Painel de Controle</div>", unsafe_allow_html=True)
+
+        render_pwm_slider()
 
         st.markdown("</div>", unsafe_allow_html=True)
 

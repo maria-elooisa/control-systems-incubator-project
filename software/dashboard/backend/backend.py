@@ -51,6 +51,14 @@ def init_dashboard_state(session_state: Any) -> None:
 
     if "thermal_alert" not in session_state:
         session_state.thermal_alert = "none"
+    
+    # PWM user control initialization
+    if "pwm_slider_value" not in session_state:
+        session_state.pwm_slider_value = 0
+    
+    if "pwm_user" not in session_state:
+        session_state.pwm_user = 0
+    
     # previous-state trackers to avoid repeated UI notifications
     if "_prev_fan_failure" not in session_state:
         session_state._prev_fan_failure = session_state.fan_failure
@@ -178,6 +186,20 @@ def reset_system(session_state: Any) -> None:
     session_state.system_failure = False
     session_state.thermal_alert = "none"
     add_event(session_state, "Reset geral executado", level="ok")
+
+
+def update_pwm_user(session_state: Any, slider_value: int) -> None:
+    """Update pwm_user value based on slider input (0-100 -> 0-200)."""
+    pwm_output = slider_value * 2
+    session_state.pwm_user = pwm_output
+    session_state.pwm_slider_value = slider_value
+    
+    add_event(
+        session_state, 
+        f"PWM Manual: {slider_value}% → {pwm_output} (2x)", 
+        level="info"
+    )
+    logger.info(f"update_pwm_user -> slider={slider_value}%, pwm_user={pwm_output}")
 
 
 def build_snapshot(session_state: Any) -> dict[str, Any]:
