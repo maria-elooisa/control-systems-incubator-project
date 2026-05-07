@@ -113,3 +113,5 @@ O que isso significa na pratica:
 - Se o dado real vier de um hardware, o backend precisa buscar esse valor em uma fonte externa em vez de gerar valores aleatorios.
 - O Streamlit, sozinho, nao faz polling continuo automaticamente neste arquivo.
 
+Se o `NODE_RED_URL` estiver indisponivel, o dashboard entra em modo mock sem voltar a tentar a rede a cada ciclo. Isso evita bloqueio visual repetido durante a atualizacao.
+

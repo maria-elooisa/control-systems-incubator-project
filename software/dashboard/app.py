@@ -20,7 +20,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-st.set_page_config(page_title="Control System Incubator", layout="wide")
+st.set_page_config(page_title="Control System Incubator", page_icon="🏭", layout="wide")
 
 
 def load_styles() -> None:
