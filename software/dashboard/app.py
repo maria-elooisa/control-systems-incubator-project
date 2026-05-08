@@ -21,7 +21,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-st.set_page_config(page_title="Control System Incubator", page_icon="🏭", layout="wide")
+st.set_page_config(page_title="Sistema de Controle da Incubadora", page_icon="🏭", layout="wide")
 
 
 def load_styles() -> None:
@@ -199,7 +199,7 @@ def render_dashboard_cycle() -> None:
         st.markdown(
             """
             <div class='hero-card'>
-              <div class='hero-title'>Incubator Control | Industrial Monitor</div>
+                            <div class='hero-title'>Controle da Incubadora | Monitor Industrial</div>
               <div class='hero-subtitle'>Monitoramento em tempo real de temperatura e atuação PWM</div>
             </div>
             """,
@@ -246,7 +246,7 @@ def render_dashboard_cycle() -> None:
 
         with kpi_c2:
             render_kpi_card(
-                title="Setpoint",
+                title="Ponto de Ajuste",
                 value=f"{setpoint:.1f} °C",
                 icon="🎯",
                 trend_values=[setpoint] * len(st.session_state.history["temp"]),
