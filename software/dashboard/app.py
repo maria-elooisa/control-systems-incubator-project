@@ -96,56 +96,13 @@ def render_pwm_slider() -> None:
         min_value=0,
         max_value=100,
         value=current_value,
-        step=1,
-        label_visibility="collapsed",
         key="pwm_slider_streamlit",
     )
-    # Renderizamos uma legenda customizada posicionada via CSS para garantir
-    # que "0" fique na extremidade esquerda e "100" na extremidade direita.
-    st.markdown(
-        """
-        <div class='pwm-slider-legend'>
-            <span>0</span>
-            <span>100</span>
-        </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    st.markdown("</div>", unsafe_allow_html=True)
     
     # Update backend when slider changes
     if new_value != current_value:
         update_pwm_user(st.session_state, new_value)
-    
-    st.markdown("<div class='pwm-input-label'>Entrada Digital do Professor</div>", unsafe_allow_html=True)
-    
-    col_input1, col_input2 = st.columns(2, gap="small")
-    
-    with col_input1:
-        pwm_input = st.number_input(
-            "Valor PWM (0-200)",
-            min_value=0,
-            max_value=200,
-            value=current_value * 2,
-            step=1,
-            key="pwm_digital_input"
-        )
-        percentage_from_input = min(100, max(0, int(pwm_input / 2)))
-        if percentage_from_input != current_value:
-            update_pwm_user(st.session_state, percentage_from_input)
-    
-    with col_input2:
-        st.number_input(
-            "Equivalente em Segundos",
-            min_value=0.0,
-            max_value=60.0,
-            value=seconds_value,
-            step=0.1,
-            key="seconds_display",
-            disabled=True
-        )
-    
-    st.markdown("</div>", unsafe_allow_html=True)
 
 
 def sparkline_svg(values: list[float], color: str, stepped: bool = False) -> str:
