@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any
 from .data_source import get_telemetry
 
-from components.pwm_plot import append_sample, init_history
+from components.pwm_plot import init_history
 import logging
 
 logger = logging.getLogger(__name__)
@@ -78,10 +78,11 @@ def tick(session_state: Any) -> None:
     data = get_telemetry()
 
     temp = data["temp"]
-    pwm = data["pwm"]
+    # PWM no dashboard é dirigido exclusivamente pelo usuário (slider 0-100).
+    pwm = float(session_state.get("pwm_slider_value", 0))
 
     # log dos valores recebidos para inspeção no terminal
-    logger.info(f"tick -> temp={temp!r}, pwm={pwm!r}")
+    logger.info(f"tick -> temp={temp!r}, pwm_user_slider={pwm!r}")
 
     session_state.history["x"].append(session_state.history["x"][-1] + 1)
     session_state.history["temp"].append(temp)

@@ -3,9 +3,10 @@ import plotly.graph_objects as go
 
 
 def init_history(history_size: int = 50) -> dict:
-    """Create simulated initial data for PWM and temperature history."""
+    """Create initial data for PWM and temperature history."""
     x = np.arange(history_size)
-    pwm = np.random.uniform(40, 70, history_size)
+    # PWM inicia em zero e só muda via ação do usuário no slider.
+    pwm = np.zeros(history_size)
     temp = 36.5 + np.random.normal(0, 0.9, history_size)
     temp = np.clip(temp, 15.0, 48.0)
 
