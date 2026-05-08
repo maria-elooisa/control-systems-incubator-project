@@ -96,6 +96,7 @@ def render_pwm_slider() -> None:
         min_value=0,
         max_value=100,
         value=current_value,
+        width=300,
         key="pwm_slider_streamlit",
     )
     st.markdown("</div>", unsafe_allow_html=True)
