@@ -90,9 +90,11 @@ def render_pwm_slider() -> None:
         unsafe_allow_html=True,
     )
     
-    # Slider control
-    st.markdown("<div class='pwm-title'>Selecione o PWM</div>", unsafe_allow_html=True)
-    st.markdown("<div class='pwm-slider-wrap'>", unsafe_allow_html=True)
+    # Slider control (título e slider no mesmo bloco para controle preciso do espaçamento)
+    st.markdown(
+        "<div class='pwm-slider-wrap'><div class='pwm-title'>Selecione o PWM</div><div class='pwm-slider-center'>",
+        unsafe_allow_html=True,
+    )
     # remover label nativo do slider (usamos o título customizado acima)
     new_value = st.slider(
         "Selecione o PWM",
@@ -110,7 +112,7 @@ def render_pwm_slider() -> None:
         update_pwm_user(st.session_state, new_value)
 
     # fecha wrapper do componente
-    st.markdown("</div>", unsafe_allow_html=True)
+    st.markdown("</div></div>", unsafe_allow_html=True)
 
 
 def sparkline_svg(values: list[float], color: str, stepped: bool = False) -> str:
@@ -284,10 +286,7 @@ def render_dashboard_cycle() -> None:
         st.markdown("<div class='control-body'>", unsafe_allow_html=True)
         render_pwm_slider()
         st.markdown("</div>", unsafe_allow_html=True)
-
-        st.markdown("</div>", unsafe_allow_html=True)
-
-        st.markdown("<div class='events-card'><div class='events-title'>Alarmes e Eventos</div>", unsafe_allow_html=True)
+        st.markdown("</div><div class='events-card'><div class='events-title'>Alarmes e Eventos</div>", unsafe_allow_html=True)
         if st.session_state.events:
             for event in st.session_state.events:
                 lvl = event["level"]
