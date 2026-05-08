@@ -71,6 +71,7 @@ def render_pwm_slider() -> None:
     # Build card structure similar to KPI cards
     max_indicator = "⚡" if is_max else ""
 
+    # resumo do componente
     st.markdown(
         f"""
         <div class='control-summary'>
@@ -90,20 +91,26 @@ def render_pwm_slider() -> None:
     )
     
     # Slider control
+    st.markdown("<div class='pwm-title'>Selecione o PWM</div>", unsafe_allow_html=True)
     st.markdown("<div class='pwm-slider-wrap'>", unsafe_allow_html=True)
+    # remover label nativo do slider (usamos o título customizado acima)
     new_value = st.slider(
-        "Ajuste o PWM",
+        "Selecione o PWM",
         min_value=0,
         max_value=100,
         value=current_value,
-        width=300,
+        width=280,
+        label_visibility="collapsed",
         key="pwm_slider_streamlit",
     )
-    st.markdown("</div>", unsafe_allow_html=True)
+    # não fechar wrappers HTML adicionais — mantemos elementos renderizados sequencialmente
     
     # Update backend when slider changes
     if new_value != current_value:
         update_pwm_user(st.session_state, new_value)
+
+    # fecha wrapper do componente
+    st.markdown("</div>", unsafe_allow_html=True)
 
 
 def sparkline_svg(values: list[float], color: str, stepped: bool = False) -> str:
