@@ -1,6 +1,9 @@
 from pathlib import Path
 import base64
 from html import escape
+import urllib.request
+import urllib.error
+import json
 
 import streamlit as st
 
@@ -13,6 +16,7 @@ from backend.backend import (
     toggle_fan_failure,
     toggle_system_failure,
     update_pwm_user,
+    add_event,
 )
 from components.pwm_plot import build_figure
 import logging
@@ -22,6 +26,30 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 st.set_page_config(page_title="Sistema de Controle da Incubadora", page_icon="🏭", layout="wide")
+
+# ── Configuração Node-RED ─────────────────────────────────────────────────────
+NODE_RED_URL = "http://localhost:1880/pwm"
+TIMEOUT_S = 3.0
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+def send_pwm_to_nodered(pwm_value: float) -> dict:
+    payload = json.dumps({"pwm": round(pwm_value, 2)}).encode("utf-8")
+    req = urllib.request.Request(
+        NODE_RED_URL,
+        data=payload,
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=TIMEOUT_S) as resp:
+            return {"ok": True, "message": f"PWM {pwm_value:.1f}% enviado com sucesso"}
+    except urllib.error.HTTPError as exc:
+        return {"ok": False, "message": f"Erro HTTP {exc.code}: {exc.reason}"}
+    except urllib.error.URLError as exc:
+        return {"ok": False, "message": f"Node-RED inacessível: {exc.reason}"}
+    except Exception as exc:
+        return {"ok": False, "message": f"Erro inesperado: {exc}"}
 
 
 def load_styles() -> None:
@@ -38,7 +66,6 @@ def render_incubator_asset(image_path: Path) -> None:
         st.markdown("<div class='incubator-asset'></div>", unsafe_allow_html=True)
         return
 
-    # cache base64 encoding in session_state to avoid re-encoding every render
     cached_path = st.session_state.get("_incubator_cached_path")
     cached_b64 = st.session_state.get("_incubator_cached_b64")
 
@@ -61,58 +88,68 @@ def render_incubator_asset(image_path: Path) -> None:
 
 
 def render_pwm_slider() -> None:
-    """Render PWM control card with digital input and slider."""
-    current_value = st.session_state.pwm_slider_value
-    is_max = current_value >= 100
-    
-    # Calculate seconds (assuming 100% = 60 seconds, adjust as needed)
-    seconds_value = round((current_value / 100) * 60, 1)
-    
-    # Build card structure similar to KPI cards
+    """Render PWM control card with slider. O valor só é enviado ao backend/Node-RED ao clicar no botão."""
+
+    # Valor pendente: o que o usuário arrastou mas ainda não confirmou
+    if "pwm_pending" not in st.session_state:
+        st.session_state.pwm_pending = st.session_state.pwm_slider_value
+
+    pending = st.session_state.pwm_pending
+    is_max = pending >= 100
+    seconds_value = round((pending / 100) * 60, 1)
     max_indicator = "⚡" if is_max else ""
 
-    # resumo do componente
     st.markdown(
         f"""
         <div class='control-summary'>
             <div class='pwm-display-left'>
                 <div class='pwm-value-label'>Percentual selecionado</div>
-                <div class='pwm-value-large'>{current_value}%</div>
+                <div class='pwm-value-large'>{pending}%</div>
                 <div class='pwm-value-seconds'>{seconds_value}s de referência {max_indicator}</div>
             </div>
             <div class='pwm-display-right'>
                 <div class='pwm-output-label'>Saída PWM</div>
-                <div class='pwm-output-value'>{current_value * 2}</div>
+                <div class='pwm-output-value'>{pending * 2}</div>
                 <div class='pwm-output-meta'>valor enviado ao backend</div>
             </div>
         </div>
         """,
         unsafe_allow_html=True,
     )
-    
-    # Slider control (título e slider no mesmo bloco para controle preciso do espaçamento)
+
     st.markdown(
         "<div class='pwm-slider-wrap'><div class='pwm-title'>Selecione o PWM</div><div class='pwm-slider-center'>",
         unsafe_allow_html=True,
     )
-    # remover label nativo do slider (usamos o título customizado acima)
+
+    # O slider só atualiza pwm_pending — não toca no backend
     new_value = st.slider(
         "Selecione o PWM",
         min_value=0,
         max_value=100,
-        value=current_value,
+        value=pending,
         width=280,
         label_visibility="collapsed",
         key="pwm_slider_streamlit",
     )
-    # não fechar wrappers HTML adicionais — mantemos elementos renderizados sequencialmente
-    
-    # Update backend when slider changes
-    if new_value != current_value:
-        update_pwm_user(st.session_state, new_value)
 
-    # fecha wrapper do componente
+    if new_value != pending:
+        st.session_state.pwm_pending = new_value
+        st.rerun()
+
     st.markdown("</div></div>", unsafe_allow_html=True)
+
+    # Botão: só aqui o valor é confirmado e enviado
+    if st.button("📤 Enviar PWM ao Node-RED", key="btn_send_pwm", width="stretch"):
+        pwm_to_send = st.session_state.pwm_pending
+        update_pwm_user(st.session_state, pwm_to_send)   # atualiza backend
+        result = send_pwm_to_nodered(pwm_to_send)         # envia ao Node-RED
+        if result["ok"]:
+            st.toast(f"✅ {result['message']}", icon="📡")
+            add_event(st.session_state, f"PWM {pwm_to_send:.1f}% enviado ao Node-RED", level="ok")
+        else:
+            st.toast(f"❌ {result['message']}", icon="⚠️")
+            add_event(st.session_state, f"Falha ao enviar PWM: {result['message']}", level="alert")
 
 
 def sparkline_svg(values: list[float], color: str, stepped: bool = False) -> str:
@@ -199,7 +236,7 @@ def render_dashboard_cycle() -> None:
         st.markdown(
             """
             <div class='hero-card'>
-                            <div class='hero-title'>Controle da Incubadora | Monitor Industrial</div>
+              <div class='hero-title'>Controle da Incubadora | Monitor Industrial</div>
               <div class='hero-subtitle'>Monitoramento em tempo real de temperatura e atuação PWM</div>
             </div>
             """,
@@ -320,7 +357,6 @@ def render_dashboard_cycle() -> None:
             st.toast("Falha crítica do sistema", icon="🚨")
         st.session_state._prev_system_failure = st.session_state.system_failure
 
-    # only show temp toast when alert state changes (avoid repeating every render)
     temp_alert_now = "low" if latest_temp < 20 else ("high" if latest_temp > 40 else "none")
     if temp_alert_now != st.session_state._prev_thermal_alert:
         if temp_alert_now != "none":
