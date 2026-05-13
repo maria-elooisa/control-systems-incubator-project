@@ -1,0 +1,332 @@
+[
+    {
+        "id": "9950c2ddb1a41706",
+        "type": "tab",
+        "label": "CP3 Cálculo - Incubadora",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "9ed3573e9971fe62",
+        "type": "inject",
+        "z": "9950c2ddb1a41706",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 180,
+        "y": 180,
+        "wires": [
+            [
+                "c7e1fdb32e99f9e3"
+            ]
+        ]
+    },
+    {
+        "id": "c7e1fdb32e99f9e3",
+        "type": "function",
+        "z": "9950c2ddb1a41706",
+        "name": "simular sensor",
+        "func": "let temp = 36 + Math.random();   // 36 a 37\nlet pwm = Math.floor(Math.random() * 255);\n\n//msg.payload = {\n//    temp: temp,\n//    pwm: pwm\n//};\n\nmsg.payload = {\n    temp: 70,\n    pwm: 180\n};\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 480,
+        "y": 180,
+        "wires": [
+            [
+                "23d90c5d1c6d3bef"
+            ]
+        ]
+    },
+    {
+        "id": "23d90c5d1c6d3bef",
+        "type": "function",
+        "z": "9950c2ddb1a41706",
+        "name": "salvar global",
+        "func": "global.set(\"sensor_data\", msg.payload);\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 730,
+        "y": 180,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "5486a6b134344915",
+        "type": "http in",
+        "z": "9950c2ddb1a41706",
+        "name": "",
+        "url": "/data",
+        "method": "get",
+        "upload": false,
+        "skipBodyParsing": false,
+        "swaggerDoc": "",
+        "x": 120,
+        "y": 340,
+        "wires": [
+            [
+                "8490a07d9ded2354"
+            ]
+        ]
+    },
+    {
+        "id": "8da0bd05b3382d90",
+        "type": "http response",
+        "z": "9950c2ddb1a41706",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 850,
+        "y": 340,
+        "wires": []
+    },
+    {
+        "id": "8490a07d9ded2354",
+        "type": "function",
+        "z": "9950c2ddb1a41706",
+        "name": "function 1",
+        "func": "msg.payload = global.get(\"telemetry\") || {\n    temp: 0,\n    pwm: 0\n};\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 480,
+        "y": 340,
+        "wires": [
+            [
+                "8da0bd05b3382d90"
+            ]
+        ]
+    },
+    {
+        "id": "6dabb8b3df5af0b6",
+        "type": "function",
+        "z": "9950c2ddb1a41706",
+        "name": "real",
+        "func": "let clean = msg.payload.trim();\nlet temp = parseFloat(clean);\n\nif (isNaN(temp)) {\n    node.warn(\"Valor inválido recebido: \" + msg.payload);\n    return null;\n}\n\nmsg.payload = {\n    temp: temp\n};\n\nglobal.set(\"telemetry\", msg.payload);\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 470,
+        "y": 260,
+        "wires": [
+            [
+                "01f1727b9a559d5f"
+            ]
+        ]
+    },
+    {
+        "id": "01f1727b9a559d5f",
+        "type": "function",
+        "z": "9950c2ddb1a41706",
+        "name": "salvar global",
+        "func": "msg.payload = global.get(\"telemetry\") || { temp: 0, pwm: 0 };\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 730,
+        "y": 260,
+        "wires": [
+            [
+                "631b60824fa1192d"
+            ]
+        ]
+    },
+    {
+        "id": "8e8bddc9932894cc",
+        "type": "serial in",
+        "z": "9950c2ddb1a41706",
+        "name": "",
+        "serial": "cf87c02669e6706f",
+        "x": 290,
+        "y": 260,
+        "wires": [
+            [
+                "6dabb8b3df5af0b6"
+            ]
+        ]
+    },
+    {
+        "id": "631b60824fa1192d",
+        "type": "debug",
+        "z": "9950c2ddb1a41706",
+        "name": "debug 1",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 900,
+        "y": 260,
+        "wires": []
+    },
+    {
+        "id": "39fe403b4e4a8289",
+        "type": "http in",
+        "z": "9950c2ddb1a41706",
+        "name": "[post] /pwm",
+        "url": "/pwm",
+        "method": "post",
+        "x": 240,
+        "y": 520,
+        "wires": [
+            [
+                "aaa54a3242aee704"
+            ]
+        ]
+    },
+    {
+        "id": "aaa54a3242aee704",
+        "type": "function",
+        "z": "9950c2ddb1a41706",
+        "name": "Calcula ON/OFF",
+        "func": "const CYCLE_S = 40;\nconst pwm = parseFloat(msg.payload.pwm);\n\nif (isNaN(pwm) || pwm < 0 || pwm > 100) {\n    node.warn('PWM inválido: ' + msg.payload.pwm);\n    return null;\n}\n\nconst on_ms  = Math.round((pwm / 100) * CYCLE_S * 1000);\nconst off_ms = Math.round(CYCLE_S * 1000 - on_ms);\n\nnode.status({\n    fill: 'green',\n    shape: 'dot',\n    text: pwm + '% → ON ' + (on_ms/1000) + 's / OFF ' + (off_ms/1000) + 's'\n});\n\nconst httpMsg = { res: msg.res, payload: { ok: true, pwm, on_ms, off_ms } };\n\n// Liga imediatamente\nnode.send([ httpMsg, { payload: '1' }, null ]);\n\n// Desliga após on_ms\nsetTimeout(() => {\n    node.send([ null, null, { payload: '0' } ]);\n\n    // Aguarda off_ms e reinicia o ciclo se não chegou novo PWM\n    setTimeout(() => {\n        node.send([ null, { payload: '1' }, null ]);\n    }, off_ms);\n\n}, on_ms);\n\nreturn null;",
+        "outputs": 3,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 460,
+        "y": 520,
+        "wires": [
+            [
+                "db0fff75409c255f"
+            ],
+            [
+                "a674f15872246aad"
+            ],
+            [
+                "260aa097c1e23669"
+            ]
+        ]
+    },
+    {
+        "id": "db0fff75409c255f",
+        "type": "http response",
+        "z": "9950c2ddb1a41706",
+        "name": "200 OK",
+        "statusCode": "200",
+        "x": 680,
+        "y": 440,
+        "wires": []
+    },
+    {
+        "id": "a674f15872246aad",
+        "type": "delay",
+        "z": "9950c2ddb1a41706",
+        "name": "Liga já (delay 0)",
+        "pauseType": "delayv",
+        "timeout": "0",
+        "timeoutUnits": "milliseconds",
+        "rate": "",
+        "nbRateUnits": "",
+        "randomFirst": "",
+        "randomLast": "",
+        "randomUnits": "seconds",
+        "allowrate": false,
+        "outputs": 1,
+        "x": 680,
+        "y": 540,
+        "wires": [
+            [
+                "3615ec2b17e6eb40"
+            ]
+        ]
+    },
+    {
+        "id": "260aa097c1e23669",
+        "type": "delay",
+        "z": "9950c2ddb1a41706",
+        "name": "Desliga após ON",
+        "pauseType": "delayv",
+        "timeout": "0",
+        "timeoutUnits": "milliseconds",
+        "rate": "",
+        "nbRateUnits": "",
+        "randomFirst": "",
+        "randomLast": "",
+        "randomUnits": "seconds",
+        "allowrate": false,
+        "outputs": 1,
+        "x": 690,
+        "y": 620,
+        "wires": [
+            [
+                "3615ec2b17e6eb40"
+            ]
+        ]
+    },
+    {
+        "id": "3615ec2b17e6eb40",
+        "type": "serial out",
+        "z": "9950c2ddb1a41706",
+        "name": "Arduino uno",
+        "serial": "cf87c02669e6706f",
+        "x": 890,
+        "y": 580,
+        "wires": []
+    },
+    {
+        "id": "cf87c02669e6706f",
+        "type": "serial-port",
+        "name": "Arduino uno",
+        "serialport": "COM9",
+        "serialbaud": "9600",
+        "databits": 8,
+        "parity": "none",
+        "stopbits": 1,
+        "waitfor": "",
+        "dtr": "none",
+        "rts": "none",
+        "cts": "none",
+        "dsr": "none",
+        "newline": "\\n",
+        "bin": "false",
+        "out": "char",
+        "addchar": "string",
+        "responsetimeout": 10000
+    },
+    {
+        "id": "372f61179610d6db",
+        "type": "global-config",
+        "env": [],
+        "modules": {
+            "node-red-node-serialport": "2.0.3"
+        }
+    }
+]
