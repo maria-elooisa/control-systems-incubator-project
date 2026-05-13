@@ -18,7 +18,7 @@ from backend.backend import (
     update_pwm_user,
     add_event,
 )
-from components.pwm_plot import build_figure
+from components.pwm_plot import build_pwm_figure, build_temperature_figure
 import logging
 
 
@@ -304,13 +304,29 @@ def render_dashboard_cycle() -> None:
         st.markdown(
             """
             <div class='panel-title'>
-              Tendência Dinâmica: PWM x Temperatura
+                Tendência Dinâmica: PWM
             </div>
             """,
             unsafe_allow_html=True,
         )
         st.plotly_chart(
-            build_figure(st.session_state.history),
+            build_pwm_figure(st.session_state.history),
+            width="stretch",
+            config={"displayModeBar": False},
+        )
+
+        st.markdown("<div class='section-gap-sm'></div>", unsafe_allow_html=True)
+
+        st.markdown(
+            """
+            <div class='panel-title'>
+                Temperatura ao Longo do Tempo
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        st.plotly_chart(
+            build_temperature_figure(st.session_state.history),
             width="stretch",
             config={"displayModeBar": False},
         )

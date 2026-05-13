@@ -49,35 +49,25 @@ def append_sample(history: dict, temp=None, pwm=None, fan_failure=False, system_
     return history
 
 
-def build_figure(history: dict) -> go.Figure:
-    """Build Plotly figure with PWM and temperature."""
+def _trim_history(history: dict, display_samples: int = 10) -> dict:
+    return {
+        key: (history[key][-display_samples:] if len(history.get(key, [])) > display_samples else history.get(key, []))
+        for key in ("x", "pwm", "temp")
+    }
+
+
+def build_pwm_figure(history: dict) -> go.Figure:
+    """Build Plotly figure with PWM history only."""
+    trimmed = _trim_history(history)
     fig = go.Figure()
 
-    # trim history to a smaller window for micro-variation visibility
-    display_samples = 10
-    trimmed = {k: (history[k][-display_samples:] if len(history.get(k, [])) > display_samples else history.get(k, [])) for k in ("x", "pwm", "temp")}
-
-    # PWM digital references for control diagnostics.
     for level in (0, 25, 50, 75, 100):
         fig.add_hline(
             y=level,
-            yref="y",
             line_width=1,
             line_dash="dot",
             line_color="rgba(242, 140, 40, 0.45)",
         )
-
-    fig.add_hrect(
-        y0=36.7,
-        y1=37.3,
-        yref="y2",
-        fillcolor="rgba(242, 140, 40, 0.14)",
-        line_width=0,
-        layer="below",
-        annotation_text="Faixa ideal",
-        annotation_position="top left",
-        annotation_font={"size": 11, "color": "#8f5c20"},
-    )
 
     fig.add_scatter(
         x=trimmed["x"],
@@ -101,13 +91,47 @@ def build_figure(history: dict) -> go.Figure:
         showlegend=False,
     )
 
+    fig.update_layout(
+        margin={"l": 18, "r": 18, "t": 10, "b": 10},
+        paper_bgcolor="white",
+        plot_bgcolor="white",
+        hovermode="x unified",
+        xaxis={
+            "title": "Amostras",
+            "showgrid": True,
+            "gridcolor": "#F2F2F2",
+            "zeroline": False,
+            "tickfont": {"size": 11},
+        },
+        yaxis={
+            "title": "PWM (%)",
+            "range": [0, 100],
+            "showgrid": True,
+            "gridcolor": "rgba(242, 140, 40, 0.16)",
+            "griddash": "dot",
+            "tickfont": {"size": 11},
+            "tickmode": "array",
+            "tickvals": [0, 25, 50, 75, 100],
+        },
+        transition={"duration": 0},
+        uirevision="static",
+        height=300,
+    )
+
+    return fig
+
+
+def build_temperature_figure(history: dict) -> go.Figure:
+    """Build Plotly figure with temperature history only."""
+    trimmed = _trim_history(history)
+    fig = go.Figure()
+
     fig.add_scatter(
         x=trimmed["x"],
         y=trimmed["temp"],
         mode="lines",
         name="Temperatura (°C)",
         line={"color": "#D1491E", "width": 3, "shape": "spline", "smoothing": 0.8},
-        yaxis="y2",
     )
 
     fig.add_scatter(
@@ -116,8 +140,18 @@ def build_figure(history: dict) -> go.Figure:
         mode="markers",
         marker={"size": 9, "color": "#D1491E", "line": {"color": "white", "width": 1.5}},
         name="Temp. atual",
-        yaxis="y2",
         showlegend=False,
+    )
+
+    fig.add_hrect(
+        y0=36.7,
+        y1=37.3,
+        fillcolor="rgba(242, 140, 40, 0.14)",
+        line_width=0,
+        layer="below",
+        annotation_text="Faixa ideal",
+        annotation_position="top left",
+        annotation_font={"size": 11, "color": "#8f5c20"},
     )
 
     fig.update_layout(
@@ -141,20 +175,7 @@ def build_figure(history: dict) -> go.Figure:
             "tickfont": {"size": 11},
         },
         yaxis={
-            "title": "PWM (%)",
-            "range": [0, 100],
-            "showgrid": True,
-            "gridcolor": "rgba(242, 140, 40, 0.16)",
-            "griddash": "dot",
-            "tickfont": {"size": 11},
-            "tickmode": "array",
-            "tickvals": [0, 25, 50, 75, 100],
-        },
-        yaxis2={
             "title": "Temperatura (°C)",
-            "overlaying": "y",
-            "side": "right",
-            # Focar visualização entre 30°C e 45°C conforme solicitado
             "range": [30, 45],
             "tickvals": [30, 35, 40, 45],
             "showgrid": False,
@@ -169,6 +190,11 @@ def build_figure(history: dict) -> go.Figure:
     )
 
     return fig
+
+
+def build_figure(history: dict) -> go.Figure:
+    """Backward-compatible combined figure alias."""
+    return build_temperature_figure(history)
 
 
 def build_pwm_gauge(pwm_value: float) -> go.Figure:
