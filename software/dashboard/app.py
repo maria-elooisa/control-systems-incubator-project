@@ -108,7 +108,7 @@ def render_pwm_slider() -> None:
             </div>
             <div class='pwm-display-right'>
                 <div class='pwm-output-label'>Segundos de Referencia</div>
-                <div class='pwm-value-seconds'>{seconds_value}s </div>
+                <div class='pwm-value-seconds'>100% = 40s </div>
             </div>
         </div>
         """,
