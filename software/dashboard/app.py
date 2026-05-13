@@ -105,12 +105,10 @@ def render_pwm_slider() -> None:
             <div class='pwm-display-left'>
                 <div class='pwm-value-label'>Percentual selecionado</div>
                 <div class='pwm-value-large'>{pending}%</div>
-                <div class='pwm-value-seconds'>{seconds_value}s de referência {max_indicator}</div>
             </div>
             <div class='pwm-display-right'>
-                <div class='pwm-output-label'>Saída PWM</div>
-                <div class='pwm-output-value'>{pending * 2}</div>
-                <div class='pwm-output-meta'>valor enviado ao backend</div>
+                <div class='pwm-output-label'>Segundos de Referencia</div>
+                <div class='pwm-value-seconds'>{seconds_value}s </div>
             </div>
         </div>
         """,
@@ -140,7 +138,7 @@ def render_pwm_slider() -> None:
     st.markdown("</div></div>", unsafe_allow_html=True)
 
     # Botão: só aqui o valor é confirmado e enviado
-    if st.button("📤 Enviar PWM ao Node-RED", key="btn_send_pwm", width="stretch"):
+    if st.button("Enviar valor", key="btn_send_pwm", width="stretch"):
         pwm_to_send = st.session_state.pwm_pending
         update_pwm_user(st.session_state, pwm_to_send)   # atualiza backend
         result = send_pwm_to_nodered(pwm_to_send)         # envia ao Node-RED
