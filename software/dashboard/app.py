@@ -126,7 +126,6 @@ def render_pwm_slider() -> None:
         min_value=0,
         max_value=100,
         value=pending,
-        width=280,
         label_visibility="collapsed",
         key="pwm_slider_streamlit",
     )
