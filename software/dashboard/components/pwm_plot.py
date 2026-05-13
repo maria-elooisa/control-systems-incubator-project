@@ -154,8 +154,9 @@ def build_figure(history: dict) -> go.Figure:
             "title": "Temperatura (°C)",
             "overlaying": "y",
             "side": "right",
-            "range": [0, 40],
-            "tickvals": [0, 10, 20, 30, 40],
+            # Focar visualização entre 30°C e 45°C conforme solicitado
+            "range": [30, 45],
+            "tickvals": [30, 35, 40, 45],
             "showgrid": False,
             "tickfont": {"size": 11},
         },
@@ -164,7 +165,7 @@ def build_figure(history: dict) -> go.Figure:
         # preserve UI state (zoom/selection) across re-renders
         uirevision="static",
         # make the chart larger to improve visibility of micro-variations
-        height=420,
+        height=480,
     )
 
     return fig
