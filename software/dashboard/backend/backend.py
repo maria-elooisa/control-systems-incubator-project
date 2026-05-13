@@ -52,6 +52,10 @@ def init_dashboard_state(session_state: Any) -> None:
     if "thermal_alert" not in session_state:
         session_state.thermal_alert = "none"
     
+    # Lamp state initialization
+    if "lamp_on" not in session_state:
+        session_state.lamp_on = False
+    
     # PWM user control initialization
     if "pwm_slider_value" not in session_state:
         session_state.pwm_slider_value = 0
@@ -212,6 +216,7 @@ def build_snapshot(session_state: Any) -> dict[str, Any]:
         "latest_pwm": latest_pwm,
         "latest_temp": latest_temp,
         "setpoint": SETPOINT_C,
+        "lamp_on": session_state.lamp_on,
         "state_label": state_label,
         "state_tone": state_tone,
         "status_text": status_text(session_state),

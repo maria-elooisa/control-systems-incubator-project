@@ -146,8 +146,6 @@ def render_pwm_slider() -> None:
             add_event(st.session_state, f"PWM {pwm_to_send:.1f}% enviado ao Node-RED", level="ok")
         else:
             st.toast(f"❌ {result['message']}", icon="⚠️")
-            add_event(st.session_state, f"Falha ao enviar PWM: {result['message']}", level="alert")
-
 
 def sparkline_svg(values: list[float], color: str, stepped: bool = False) -> str:
     if not values:
@@ -222,6 +220,7 @@ def render_dashboard_cycle() -> None:
     latest_pwm = snapshot["latest_pwm"]
     latest_temp = snapshot["latest_temp"]
     setpoint = snapshot["setpoint"]
+    lamp_on = snapshot["lamp_on"]
     state_label = snapshot["state_label"]
     state_tone = snapshot["state_tone"]
     status_text = snapshot["status_text"]
@@ -279,13 +278,15 @@ def render_dashboard_cycle() -> None:
             )
 
         with kpi_c2:
+            lamp_status = "Ligada" if lamp_on else "Desligada"
+            lamp_tone = "ok" if lamp_on else "warn"
             render_kpi_card(
-                title="Ponto de Ajuste",
-                value=f"{setpoint:.1f} °C",
-                icon="🎯",
-                trend_values=[setpoint] * len(st.session_state.history["temp"]),
-                trend_text="Referência térmica",
-                tone="ok",
+                title="Lâmpada",
+                value=lamp_status,
+                icon="💡",
+                trend_values=st.session_state.history["temp"],
+                trend_text="Estado operacional",
+                tone=lamp_tone,
             )
 
         with kpi_c3:
