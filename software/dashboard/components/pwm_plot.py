@@ -187,8 +187,8 @@ def build_temperature_figure(history: dict) -> go.Figure:
         },
         yaxis={
             "title": "Temperatura (°C)",
-            "range": [30, 45],
-            "tickvals": [30, 35, 40, 45],
+            "range": [0, 45],
+            "tickvals": [0, 10, 20, 30, 40],
             "showgrid": False,
             "tickfont": {"size": 11},
         },
