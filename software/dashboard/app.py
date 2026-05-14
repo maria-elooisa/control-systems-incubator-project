@@ -117,16 +117,21 @@ def render_pwm_slider() -> None:
     )
 
     with st.form("pwm_input_form", clear_on_submit=False):
-        st.number_input(
-            "PWM Value",
-            min_value=0,
-            max_value=100,
-            value=int(current_value),
-            label_visibility="collapsed",
-            key="pwm_input_number",
-            step=1,
-        )
-        submitted = st.form_submit_button("Enviar PWM")
+        input_col, button_col = st.columns([3, 1], gap="small")
+
+        with input_col:
+            st.number_input(
+                "PWM Value",
+                min_value=0,
+                max_value=100,
+                value=int(current_value),
+                label_visibility="collapsed",
+                key="pwm_input_number",
+                step=1,
+            )
+
+        with button_col:
+            submitted = st.form_submit_button("Enviar")
 
     if submitted:
         pwm_to_send = float(st.session_state.pwm_input_number)

@@ -428,29 +428,56 @@
 
 .control-card [data-testid="stNumberInput"] input {
   width: 100% !important;
-  border-radius: 12px !important;
+  border-radius: 14px !important;
   font-size: 1.15rem !important;
   font-weight: 700 !important;
   text-align: center !important;
   height: 48px !important;
-  border: 1px solid var(--stroke) !important;
-  background: var(--panel) !important;
+  border: 1px solid #f0d9bf !important;
+  background: linear-gradient(135deg, #ffffff 0%, #fffaf0 100%) !important;
   color: var(--text-main) !important;
   padding: 0.6rem 0.85rem !important;
   transition: all 0.2s ease !important;
 }
 
 .control-card [data-testid="stNumberInput"] input:focus {
-  box-shadow: 0 0 0 2px rgba(242, 140, 40, 0.2) !important;
-  border-color: var(--warm-2) !important;
+  box-shadow: 0 0 0 3px rgba(242, 140, 40, 0.14) !important;
+  border-color: #e8a04f !important;
 }
 
 .control-card [data-testid="stFormSubmitButton"] {
-  display: none !important;
+  display: block;
 }
 
 .control-card form {
   margin-bottom: 0;
+  margin-top: 0.15rem;
+  padding: 0.7rem 0.75rem 0.8rem;
+  border: 1px solid #f1e2c9;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #fffdfa 0%, #fff5e3 100%);
+  box-shadow: 0 10px 22px rgba(185, 146, 83, 0.09);
+}
+
+.control-card form [data-testid="stFormSubmitButton"] {
+  display: block;
+  margin-top: 1.65rem;
+}
+
+.control-card form [data-testid="stFormSubmitButton"] button {
+  width: 100%;
+  height: 48px;
+  border-radius: 14px;
+  border: 1px solid #e7b979;
+  background: linear-gradient(135deg, #fff7ea 0%, #ffe0b5 100%);
+  color: #7b470f;
+  font-weight: 800;
+  box-shadow: 0 8px 18px rgba(185, 146, 83, 0.12);
+}
+
+.control-card form [data-testid="stFormSubmitButton"] button:hover {
+  border-color: #d99539;
+  background: linear-gradient(135deg, #fff4dd 0%, #ffd79b 100%);
 }
 
 .control-card .stMarkdown {
