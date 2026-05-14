@@ -265,40 +265,6 @@ def render_dashboard_cycle() -> None:
     top_left, top_right = st.columns([2.7, 1.0], gap="small")
 
     with top_left:
-        kpi_c1, kpi_c2, kpi_c3 = st.columns([0.9, 0.9, 0.9], gap="small")
-
-        with kpi_c1:
-            render_kpi_card(
-                title="Temperatura",
-                value=f"{latest_temp:.2f} °C",
-                icon="🌡",
-                trend_values=st.session_state.history["temp"],
-                trend_text="Leitura contínua",
-                tone="warm",
-            )
-
-        with kpi_c2:
-            lamp_status = "Ligada" if lamp_on else "Desligada"
-            lamp_tone = "ok" if lamp_on else "warn"
-            render_kpi_card(
-                title="Lâmpada",
-                value=lamp_status,
-                icon="💡",
-                trend_values=st.session_state.history["temp"],
-                trend_text="Estado operacional",
-                tone=lamp_tone,
-            )
-
-        with kpi_c3:
-            render_kpi_card(
-                title="Estado do Sistema",
-                value=state_label,
-                icon="🛡",
-                trend_values=st.session_state.history["temp"],
-                trend_text="Normal" if state_tone == "ok" else "Atenção",
-                tone="ok" if state_tone == "ok" else "alert",
-            )
-
         st.markdown("<div class='section-gap-md'></div>", unsafe_allow_html=True)
 
         st.markdown(
@@ -332,6 +298,29 @@ def render_dashboard_cycle() -> None:
         )
 
     with top_right:
+        # Resumo com Temperatura e Status da Lâmpada
+        lamp_status = "Ligada" if lamp_on else "Desligada"
+        lamp_icon = "💡" if lamp_on else "🔌"
+        
+        st.markdown(
+            f"""
+            <div class='summary-card'>
+              <div class='summary-row'>
+                <div class='summary-item'>
+                  <div class='summary-label'>Temperatura Atual</div>
+                  <div class='summary-value'>🌡 {latest_temp:.2f} °C</div>
+                </div>
+                <div class='summary-item'>
+                  <div class='summary-label'>Status da Lâmpada</div>
+                  <div class='summary-value'>{lamp_icon} {lamp_status}</div>
+                </div>
+              </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        
+        st.markdown("<div class='section-gap-sm'></div>", unsafe_allow_html=True)
         st.markdown("<div class='control-card'><div class='control-title'>Painel de Controle</div>", unsafe_allow_html=True)
 
         st.markdown("<div class='control-body'>", unsafe_allow_html=True)

@@ -499,6 +499,51 @@
   border: 1px solid #f0d9bf;
 }
 
+/* Novo Resumo: Temperatura e Status da Lâmpada */
+.summary-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.summary-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.7rem;
+}
+
+.summary-item {
+  border: 1px solid var(--stroke);
+  border-radius: 18px;
+  padding: 0.75rem 0.8rem;
+  background: var(--panel);
+  box-shadow: var(--shadow-soft);
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.summary-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px rgba(185, 146, 83, 0.15);
+}
+
+.summary-label {
+  color: var(--text-muted);
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.summary-value {
+  color: var(--text-main);
+  font-size: 1.3rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
 @media (max-width: 1200px) {
   .kpi-card {
     min-height: 160px;
