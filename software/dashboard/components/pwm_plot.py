@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta
+
 import numpy as np
 import plotly.graph_objects as go
 
@@ -9,9 +11,12 @@ def init_history(history_size: int = 50) -> dict:
     pwm = np.zeros(history_size)
     temp = 36.5 + np.random.normal(0, 0.9, history_size)
     temp = np.clip(temp, 15.0, 48.0)
+    now = datetime.now()
+    time = [now - timedelta(seconds=(history_size - idx - 1)) for idx in range(history_size)]
 
     return {
         "x": x.tolist(),
+        "time": time,
         "pwm": pwm.tolist(),
         "temp": temp.tolist(),
     }
@@ -20,6 +25,7 @@ def init_history(history_size: int = 50) -> dict:
 def append_sample(history: dict, temp=None, pwm=None, fan_failure=False, system_failure=False) -> dict:
     """Append one new sample while keeping a fixed-size history."""
     next_x = history["x"][-1] + 1 if history["x"] else 0
+    next_time = datetime.now()
 
     if system_failure:
         next_pwm = 0.0
@@ -40,10 +46,11 @@ def append_sample(history: dict, temp=None, pwm=None, fan_failure=False, system_
             next_temp += np.random.uniform(1.8, 4.5)
 
     history["x"].append(float(next_x))
+    history["time"].append(next_time)
     history["pwm"].append(float(next_pwm))
     history["temp"].append(float(np.clip(next_temp, 10.0, 50.0)))
 
-    for key in ("x", "pwm", "temp"):
+    for key in ("x", "time", "pwm", "temp"):
         history[key] = history[key][-50:]
 
     return history
@@ -52,7 +59,7 @@ def append_sample(history: dict, temp=None, pwm=None, fan_failure=False, system_
 def _trim_history(history: dict, display_samples: int = 10) -> dict:
     return {
         key: (history[key][-display_samples:] if len(history.get(key, [])) > display_samples else history.get(key, []))
-        for key in ("x", "pwm", "temp")
+        for key in ("x", "time", "pwm", "temp")
     }
 
 
@@ -70,7 +77,7 @@ def build_pwm_figure(history: dict) -> go.Figure:
         )
 
     fig.add_scatter(
-        x=trimmed["x"],
+        x=trimmed["time"],
         y=trimmed["pwm"],
         mode="lines",
         name="PWM (%)",
@@ -82,7 +89,7 @@ def build_pwm_figure(history: dict) -> go.Figure:
     )
 
     fig.add_scatter(
-        x=[trimmed["x"][-1]] if trimmed["x"] else [0],
+        x=[trimmed["time"][-1]] if trimmed["time"] else [datetime.now()],
         y=[trimmed["pwm"][-1]] if trimmed["pwm"] else [0],
         mode="markers",
         marker={"size": 10, "color": "#F28C28", "line": {"color": "white", "width": 1.5}},
@@ -97,11 +104,13 @@ def build_pwm_figure(history: dict) -> go.Figure:
         plot_bgcolor="white",
         hovermode="x unified",
         xaxis={
-            "title": "Amostras",
+            "title": "Data e hora",
             "showgrid": True,
             "gridcolor": "#F2F2F2",
             "zeroline": False,
             "tickfont": {"size": 11},
+            "type": "date",
+            "tickformat": "%d/%m %H:%M:%S",
         },
         yaxis={
             "title": "PWM (%)",
@@ -127,7 +136,7 @@ def build_temperature_figure(history: dict) -> go.Figure:
     fig = go.Figure()
 
     fig.add_scatter(
-        x=trimmed["x"],
+        x=trimmed["time"],
         y=trimmed["temp"],
         mode="lines",
         name="Temperatura (°C)",
@@ -135,7 +144,7 @@ def build_temperature_figure(history: dict) -> go.Figure:
     )
 
     fig.add_scatter(
-        x=[trimmed["x"][-1]] if trimmed["x"] else [0],
+        x=[trimmed["time"][-1]] if trimmed["time"] else [datetime.now()],
         y=[trimmed["temp"][-1]] if trimmed["temp"] else [0],
         mode="markers",
         marker={"size": 9, "color": "#D1491E", "line": {"color": "white", "width": 1.5}},
@@ -168,11 +177,13 @@ def build_temperature_figure(history: dict) -> go.Figure:
             "borderwidth": 1,
         },
         xaxis={
-            "title": "Amostras",
+            "title": "Data e hora",
             "showgrid": True,
             "gridcolor": "#F2F2F2",
             "zeroline": False,
             "tickfont": {"size": 11},
+            "type": "date",
+            "tickformat": "%d/%m %H:%M:%S",
         },
         yaxis={
             "title": "Temperatura (°C)",

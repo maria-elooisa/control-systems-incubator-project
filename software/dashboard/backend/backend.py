@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from time import monotonic
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 from .data_source import get_telemetry
@@ -29,9 +29,20 @@ def resolve_state_image(state: str) -> Path:
     return Path(__file__).resolve().parent.parent / "components" / "img" / selected
 
 
+def _ensure_history_time_series(session_state: Any) -> None:
+    if "history" not in session_state or "time" in session_state.history:
+        return
+
+    history_size = len(session_state.history.get("x", []))
+    now = datetime.now()
+    session_state.history["time"] = [now - timedelta(seconds=(history_size - idx - 1)) for idx in range(history_size)]
+
+
 def init_dashboard_state(session_state: Any) -> None:
     if "history" not in session_state:
         session_state.history = init_history(history_size=50)
+    else:
+        _ensure_history_time_series(session_state)
 
     if "fan_failure" not in session_state:
         session_state.fan_failure = False
@@ -89,10 +100,11 @@ def tick(session_state: Any) -> None:
     logger.info(f"tick -> temp={temp!r}, pwm_user_slider={pwm!r}")
 
     session_state.history["x"].append(session_state.history["x"][-1] + 1)
+    session_state.history.setdefault("time", []).append(datetime.now())
     session_state.history["temp"].append(temp)
     session_state.history["pwm"].append(pwm)
 
-    for key in ("x", "pwm", "temp"):
+    for key in ("x", "time", "pwm", "temp"):
         session_state.history[key] = session_state.history[key][-50:]
 
     latest_temp = session_state.history["temp"][-1]
