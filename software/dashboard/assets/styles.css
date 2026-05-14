@@ -48,11 +48,15 @@
 
 .hero-card {
   height: 100%;
+  min-height: 102px;
   border: 1px solid var(--stroke);
   border-radius: 18px;
   padding: 0.85rem 1rem;
   background: linear-gradient(135deg, #fffefb 0%, #fff7e7 100%);
   box-shadow: var(--shadow-soft);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .hero-title {
@@ -66,55 +70,6 @@
   color: var(--text-muted);
   font-size: 0.88rem;
   margin-top: 0.35rem;
-}
-
-.status-card {
-  border: 1px solid var(--stroke);
-  border-radius: 18px;
-  padding: 0.8rem;
-  height: 100%;
-  background: var(--panel);
-  box-shadow: var(--shadow-soft);
-}
-
-.status-label {
-  color: var(--text-muted);
-  font-size: 0.78rem;
-  margin-bottom: 0.4rem;
-  font-weight: 600;
-}
-
-.status-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  border-radius: 999px;
-  padding: 0.34rem 0.72rem;
-  font-size: 0.82rem;
-  font-weight: 700;
-}
-
-.status-pill::before {
-  content: "";
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: currentColor;
-}
-
-.status-ok {
-  color: #1f7f38;
-  background: #e9f8ed;
-}
-
-.status-warn {
-  color: #915514;
-  background: #fff3df;
-}
-
-.status-alert {
-  color: #a01919;
-  background: #ffe5e5;
 }
 
 .incubator-asset {

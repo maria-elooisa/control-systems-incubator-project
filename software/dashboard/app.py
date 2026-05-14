@@ -222,7 +222,7 @@ def render_dashboard_cycle() -> None:
     status_text = snapshot["status_text"]
     backend_state = snapshot["backend_state"]
 
-    header_col_left, header_col_mid, header_col_right = st.columns([2.2, 1.2, 1.0], gap="small")
+    header_col_left, header_col_right = st.columns([3.2, 1.0], gap="small")
 
     with header_col_left:
         st.markdown(
@@ -230,23 +230,6 @@ def render_dashboard_cycle() -> None:
             <div class='hero-card'>
               <div class='hero-title'>Controle da Incubadora | Monitor Industrial</div>
               <div class='hero-subtitle'>Monitoramento em tempo real de temperatura e atuação PWM</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-    with header_col_mid:
-        status_class = {
-            "ok": "status-ok",
-            "warn": "status-warn",
-            "alert": "status-alert",
-        }.get(state_tone, "status-ok")
-
-        st.markdown(
-            f"""
-            <div class='status-card'>
-              <div class='status-label'>Status Operacional</div>
-              <div class='status-pill {status_class}'>{escape(status_text)}</div>
             </div>
             """,
             unsafe_allow_html=True,
