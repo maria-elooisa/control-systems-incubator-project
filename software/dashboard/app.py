@@ -88,22 +88,19 @@ def render_incubator_asset(image_path: Path) -> None:
 
 
 def render_pwm_slider() -> None:
-    """Render PWM control with input and +/- buttons. O valor só é enviado ao backend/Node-RED ao clicar no botão."""
+    """Render PWM control with number input. Envia somente ao confirmar com Enter."""
 
-    # Valor pendente: o que o usuário digitou mas ainda não confirmou
-    if "pwm_pending" not in st.session_state:
-        st.session_state.pwm_pending = st.session_state.pwm_slider_value
+    if "pwm_slider_value" not in st.session_state:
+        st.session_state.pwm_slider_value = 0.0
 
-    pending = st.session_state.pwm_pending
-    is_max = pending >= 100
-    max_indicator = "⚡" if is_max else ""
+    current_value = st.session_state.pwm_slider_value
 
     st.markdown(
         f"""
         <div class='control-summary'>
             <div class='pwm-display-left'>
                 <div class='pwm-value-label'>Percentual selecionado</div>
-                <div class='pwm-value-large'>{pending}%</div>
+                <div class='pwm-value-large'>{current_value}%</div>
             </div>
             <div class='pwm-display-right'>
                 <div class='pwm-output-label'>Segundos de Referencia</div>
@@ -119,33 +116,27 @@ def render_pwm_slider() -> None:
         unsafe_allow_html=True,
     )
 
-    # Layout: input e botão enviar
-    col_input, col_send = st.columns([2.5, 1.5], gap="small")
-
-    with col_input:
-        new_value = st.number_input(
+    with st.form("pwm_input_form", clear_on_submit=False):
+        st.number_input(
             "PWM Value",
             min_value=0,
             max_value=100,
-            value=int(pending),
+            value=int(current_value),
             label_visibility="collapsed",
             key="pwm_input_number",
             step=1,
         )
-        if new_value != int(pending):
-            st.session_state.pwm_pending = float(new_value)
-            st.rerun()
+        submitted = st.form_submit_button("Enviar PWM")
 
-    with col_send:
-        if st.button("Enviar", key="btn_send_pwm", use_container_width=True):
-            pwm_to_send = st.session_state.pwm_pending
-            update_pwm_user(st.session_state, pwm_to_send)   # atualiza backend
-            result = send_pwm_to_nodered(pwm_to_send)         # envia ao Node-RED
-            if result["ok"]:
-                st.toast(f"✅ {result['message']}", icon="📡")
-                add_event(st.session_state, f"PWM {pwm_to_send:.1f}% enviado ao Node-RED", level="ok")
-            else:
-                st.toast(f"❌ {result['message']}", icon="⚠️")
+    if submitted:
+        pwm_to_send = float(st.session_state.pwm_input_number)
+        update_pwm_user(st.session_state, pwm_to_send)
+        result = send_pwm_to_nodered(pwm_to_send)
+        if result["ok"]:
+            st.toast(f"✅ {result['message']}", icon="📡")
+            add_event(st.session_state, f"PWM {pwm_to_send:.1f}% enviado ao Node-RED", level="ok")
+        else:
+            st.toast(f"❌ {result['message']}", icon="⚠️")
 
 def sparkline_svg(values: list[float], color: str, stepped: bool = False) -> str:
     if not values:

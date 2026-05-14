@@ -422,7 +422,35 @@
 }
 
 .control-card [data-testid="stNumberInput"] {
-  margin-bottom: 0.15rem;
+  margin-bottom: 0;
+  margin-top: 0.3rem;
+}
+
+.control-card [data-testid="stNumberInput"] input {
+  width: 100% !important;
+  border-radius: 12px !important;
+  font-size: 1.15rem !important;
+  font-weight: 700 !important;
+  text-align: center !important;
+  height: 48px !important;
+  border: 1px solid var(--stroke) !important;
+  background: var(--panel) !important;
+  color: var(--text-main) !important;
+  padding: 0.6rem 0.85rem !important;
+  transition: all 0.2s ease !important;
+}
+
+.control-card [data-testid="stNumberInput"] input:focus {
+  box-shadow: 0 0 0 2px rgba(242, 140, 40, 0.2) !important;
+  border-color: var(--warm-2) !important;
+}
+
+.control-card [data-testid="stFormSubmitButton"] {
+  display: none !important;
+}
+
+.control-card form {
+  margin-bottom: 0;
 }
 
 .control-card .stMarkdown {
