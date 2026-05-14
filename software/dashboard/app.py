@@ -244,8 +244,6 @@ def render_dashboard_cycle() -> None:
     top_left, top_right = st.columns([2.7, 1.0], gap="small")
 
     with top_left:
-        st.markdown("<div class='section-gap-md'></div>", unsafe_allow_html=True)
-
         st.markdown(
             """
             <div class='panel-title'>

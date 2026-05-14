@@ -14,6 +14,8 @@ logger = logging.getLogger(__name__)
 SETPOINT_C = 37.0
 TEMP_MIN_CRITICAL_C = 30.0
 TEMP_MAX_CRITICAL_C = 40.0
+IMAGE_MIN_C = 30.0
+IMAGE_MAX_C = 37.0
 DEFAULT_SAMPLE_INTERVAL_S = 1.0
 MAX_CATCH_UP_SAMPLES = 5
 
@@ -155,15 +157,12 @@ def compute_system_state(session_state: Any) -> tuple[str, str]:
 
 
 def compute_backend_state(session_state: Any) -> str:
-    """Resolve image state from the same logic used by system status."""
+    """Resolve image state from temperature band only."""
     latest_temp = session_state.history["temp"][-1]
 
-    if latest_temp < TEMP_MIN_CRITICAL_C:
+    if latest_temp < IMAGE_MIN_C:
         return "frio"
-    if latest_temp > TEMP_MAX_CRITICAL_C:
-        return "calor"
-
-    if session_state.system_failure or session_state.fan_failure:
+    if latest_temp > IMAGE_MAX_C:
         return "calor"
 
     return "ideal"
