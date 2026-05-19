@@ -95,11 +95,15 @@ def tick(session_state: Any) -> None:
     data = get_telemetry()
 
     temp = data["temp"]
+    rele = data.get("rele", "desligado")
     # PWM no dashboard é dirigido exclusivamente pelo usuário (slider 0-100).
     pwm = float(session_state.get("pwm_slider_value", 0))
 
+    # Atualiza estado da lâmpada com base no relé recebido do Node-RED
+    session_state.lamp_on = (rele == "ligado")
+
     # log dos valores recebidos para inspeção no terminal
-    logger.info(f"tick -> temp={temp!r}, pwm_user_slider={pwm!r}")
+    logger.info(f"tick -> temp={temp!r}, pwm_user_slider={pwm!r}, rele={rele!r}")
 
     session_state.history["x"].append(session_state.history["x"][-1] + 1)
     session_state.history.setdefault("time", []).append(datetime.now())

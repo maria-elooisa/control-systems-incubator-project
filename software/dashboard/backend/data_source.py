@@ -37,7 +37,7 @@ def _mock_telemetry():
     _mock_temp = float(max(10.0, min(50.0, next_temp)))
 
     logger.info("get_telemetry (mock) -> temp=%.2f, pwm=%.1f", _mock_temp, _mock_pwm)
-    return {"temp": _mock_temp, "pwm": _mock_pwm}
+    return {"temp": _mock_temp, "pwm": _mock_pwm, "rele": "desligado"}
 
 
 # prepare a requests session with a small retry policy so transient errors don't block
@@ -59,7 +59,7 @@ def get_telemetry():
 
     try:
         # use short connect/read timeouts so UI doesn't hang; tuple = (connect, read)
-        response = _session.get(NODE_RED_URL, timeout=(0.25, 0.4), verify=NODE_RED_VERIFY)
+        response = _session.get(NODE_RED_URL, timeout=(0.25, 1.0), verify=NODE_RED_VERIFY)
         logger.debug("get_telemetry -> status=%s elapsed=%s", response.status_code, getattr(response, "elapsed", None))
 
         # raise for HTTP error statuses so we can handle them explicitly
@@ -74,29 +74,28 @@ def get_telemetry():
         # validação básica
         if data is None:
             logger.warning("get_telemetry -> received None, using mock telemetry")
-            _mock_only = True
             return _mock_telemetry()
 
         # log do payload recebido para debug no terminal (detalhado)
         logger.debug("get_telemetry payload -> %s", data)
-        logger.info("get_telemetry -> temp=%s, pwm=%s", data.get("temp"), data.get("pwm"))
+        logger.info("get_telemetry -> temp=%s, rele=%s", data.get("temp"), data.get("rele"))
 
         # garante que tem as chaves certas
+        logger.info("get_telemetry RAW payload -> %s", data)
         return {
             "temp": data.get("temp", 0),
             "pwm": data.get("pwm", 0),
+            "rele": data.get("rele") or "desligado",  # ← troca get(..., "desligado") por or
         }
 
     except requests.exceptions.SSLError:
         logger.exception("get_telemetry -> SSL error when contacting %s", NODE_RED_URL)
-        _mock_only = True
+        _mock_only = True 
         return _mock_telemetry()
     except requests.exceptions.Timeout:
         logger.warning("get_telemetry -> timeout contacting %s", NODE_RED_URL)
-        _mock_only = True
         return _mock_telemetry()
     except requests.exceptions.RequestException:
         # register full exception trace so we can diagnose failures contacting Node-RED
         logger.exception("get_telemetry failed, using internal mock telemetry")
-        _mock_only = True
         return _mock_telemetry()
