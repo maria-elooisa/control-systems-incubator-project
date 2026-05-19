@@ -33,6 +33,27 @@ TIMEOUT_S = 3.0
 # ─────────────────────────────────────────────────────────────────────────────
 
 
+def _decode_response_message(body: bytes) -> str | None:
+    if not body:
+        return None
+
+    text = body.decode("utf-8", errors="replace").strip()
+    if not text:
+        return None
+
+    try:
+        payload = json.loads(text)
+    except json.JSONDecodeError:
+        return text
+
+    if isinstance(payload, dict):
+        message = payload.get("message") or payload.get("msg") or payload.get("status")
+        if message:
+            return str(message)
+
+    return text
+
+
 def send_pwm_to_nodered(pwm_value: float) -> dict:
     payload = json.dumps({"pwm": round(pwm_value, 2)}).encode("utf-8")
     req = urllib.request.Request(
@@ -43,9 +64,18 @@ def send_pwm_to_nodered(pwm_value: float) -> dict:
     )
     try:
         with urllib.request.urlopen(req, timeout=TIMEOUT_S) as resp:
-            return {"ok": True, "message": f"PWM {pwm_value:.1f}% enviado com sucesso"}
+            response_body = resp.read()
+            response_message = _decode_response_message(response_body)
+            return {
+                "ok": True,
+                "message": response_message or f"PWM {pwm_value:.1f}% enviado com sucesso",
+            }
     except urllib.error.HTTPError as exc:
-        return {"ok": False, "message": f"Erro HTTP {exc.code}: {exc.reason}"}
+        response_message = _decode_response_message(exc.read())
+        return {
+            "ok": False,
+            "message": response_message or f"Erro HTTP {exc.code}: {exc.reason}",
+        }
     except urllib.error.URLError as exc:
         return {"ok": False, "message": f"Node-RED inacessível: {exc.reason}"}
     except Exception as exc:
@@ -135,9 +165,9 @@ def render_pwm_slider() -> None:
 
     if submitted:
         pwm_to_send = float(st.session_state.pwm_input_number)
-        update_pwm_user(st.session_state, pwm_to_send)
         result = send_pwm_to_nodered(pwm_to_send)
         if result["ok"]:
+            update_pwm_user(st.session_state, pwm_to_send)
             st.toast(f"✅ {result['message']}", icon="📡")
             add_event(st.session_state, f"PWM {pwm_to_send:.1f}% enviado ao Node-RED", level="ok")
         else:
