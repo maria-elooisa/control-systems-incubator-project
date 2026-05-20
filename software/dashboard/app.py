@@ -88,10 +88,12 @@ def render_incubator_asset(image_path: Path) -> None:
 
 
 def render_pwm_slider() -> None:
-    """Render PWM control with number input. Envia somente ao confirmar com Enter."""
+    """Render PWM control with number input. Envia ao clicar no botão Enviar."""
 
     if "pwm_slider_value" not in st.session_state:
         st.session_state.pwm_slider_value = 0.0
+    if "pwm_input_number" not in st.session_state:
+        st.session_state.pwm_input_number = int(st.session_state.pwm_slider_value)
 
     current_value = st.session_state.pwm_slider_value
 
@@ -116,32 +118,41 @@ def render_pwm_slider() -> None:
         unsafe_allow_html=True,
     )
 
-    with st.form("pwm_input_form", clear_on_submit=False):
-        input_col, button_col = st.columns([3, 1], gap="small")
-
-        with input_col:
-            st.number_input(
-                "PWM Value",
-                min_value=0,
-                max_value=100,
-                value=int(current_value),
-                label_visibility="collapsed",
-                key="pwm_input_number",
-                step=1,
-            )
-
-        with button_col:
-            submitted = st.form_submit_button("Enviar")
-
-    if submitted:
+    def _on_submit():
         pwm_to_send = float(st.session_state.pwm_input_number)
         update_pwm_user(st.session_state, pwm_to_send)
         result = send_pwm_to_nodered(pwm_to_send)
         if result["ok"]:
-            st.toast(f"✅ {result['message']}", icon="📡")
-            add_event(st.session_state, f"PWM {pwm_to_send:.1f}% enviado ao Node-RED", level="ok")
+            st.session_state._pwm_toast = ("ok", result["message"], pwm_to_send)
         else:
-            st.toast(f"❌ {result['message']}", icon="⚠️")
+            st.session_state._pwm_toast = ("err", result["message"], pwm_to_send)
+
+    input_col, button_col = st.columns([3, 1], gap="small")
+
+    with input_col:
+        st.number_input(
+            "PWM Value",
+            min_value=0,
+            max_value=100,
+            label_visibility="collapsed",
+            key="pwm_input_number",
+            step=1,
+            on_change=_on_submit,
+        )
+
+    with button_col:
+        if st.button("Enviar", key="btn_send_pwm"):
+            _on_submit()
+
+    if "_pwm_toast" in st.session_state and st.session_state._pwm_toast:
+        status, message, pwm_val = st.session_state._pwm_toast
+        st.session_state._pwm_toast = None
+        if status == "ok":
+            st.toast(f"✅ {message}", icon="📡")
+            add_event(st.session_state, f"PWM {pwm_val:.1f}% enviado ao Node-RED", level="ok")
+        else:
+            st.toast(f"❌ {message}", icon="⚠️")
+
 
 def sparkline_svg(values: list[float], color: str, stepped: bool = False) -> str:
     if not values:
