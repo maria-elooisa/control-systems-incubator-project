@@ -110,9 +110,6 @@ def tick(session_state: Any) -> None:
     session_state.history["temp"].append(temp)
     session_state.history["pwm"].append(pwm)
 
-    for key in ("x", "time", "pwm", "temp"):
-        session_state.history[key] = session_state.history[key][-50:]
-
     latest_temp = session_state.history["temp"][-1]
     thermal_alert = "none"
     if latest_temp < TEMP_MIN_CRITICAL_C:

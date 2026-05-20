@@ -4,6 +4,20 @@ import numpy as np
 import plotly.graph_objects as go
 
 
+def _today_label() -> str:
+    return datetime.now().strftime("%d/%m/%Y")
+
+
+def _fix_dates_to_today(values: list[datetime]) -> list[datetime]:
+    today = datetime.now()
+    return [
+        value.replace(year=today.year, month=today.month, day=today.day)
+        if isinstance(value, datetime)
+        else today
+        for value in values
+    ]
+
+
 def init_history(history_size: int = 50) -> dict:
     """Create initial data for PWM and temperature history."""
     x = np.arange(history_size)
@@ -50,22 +64,13 @@ def append_sample(history: dict, temp=None, pwm=None, fan_failure=False, system_
     history["pwm"].append(float(next_pwm))
     history["temp"].append(float(np.clip(next_temp, 10.0, 50.0)))
 
-    for key in ("x", "time", "pwm", "temp"):
-        history[key] = history[key][-50:]
-
     return history
-
-
-def _trim_history(history: dict, display_samples: int = 10) -> dict:
-    return {
-        key: (history[key][-display_samples:] if len(history.get(key, [])) > display_samples else history.get(key, []))
-        for key in ("x", "time", "pwm", "temp")
-    }
 
 
 def build_pwm_figure(history: dict) -> go.Figure:
     """Build Plotly figure with PWM history only."""
-    trimmed = _trim_history(history)
+    times = _fix_dates_to_today(history.get("time", []))
+    pwm_values = history.get("pwm", [])
     fig = go.Figure()
 
     for level in (0, 25, 50, 75, 100):
@@ -77,8 +82,8 @@ def build_pwm_figure(history: dict) -> go.Figure:
         )
 
     fig.add_scatter(
-        x=trimmed["time"],
-        y=trimmed["pwm"],
+        x=times,
+        y=pwm_values,
         mode="lines",
         name="PWM (%)",
         line={"color": "#F28C28", "width": 3.4, "shape": "hv"},
@@ -89,8 +94,8 @@ def build_pwm_figure(history: dict) -> go.Figure:
     )
 
     fig.add_scatter(
-        x=[trimmed["time"][-1]] if trimmed["time"] else [datetime.now()],
-        y=[trimmed["pwm"][-1]] if trimmed["pwm"] else [0],
+        x=[times[-1]] if times else [datetime.now()],
+        y=[pwm_values[-1]] if pwm_values else [0],
         mode="markers",
         marker={"size": 10, "color": "#F28C28", "line": {"color": "white", "width": 1.5}},
         name="PWM atual",
@@ -110,7 +115,8 @@ def build_pwm_figure(history: dict) -> go.Figure:
             "zeroline": False,
             "tickfont": {"size": 11},
             "type": "date",
-            "tickformat": "%d/%m %H:%M:%S",
+            "tickformat": "%H:%M:%S",
+            "hoverformat": "%H:%M:%S",
         },
         yaxis={
             "title": "PWM (%)",
@@ -125,6 +131,18 @@ def build_pwm_figure(history: dict) -> go.Figure:
         transition={"duration": 0},
         uirevision="static",
         height=300,
+        annotations=[
+            {
+                "text": f"Data de hoje: {_today_label()}",
+                "xref": "paper",
+                "yref": "paper",
+                "x": 1,
+                "y": 1.08,
+                "showarrow": False,
+                "xanchor": "right",
+                "font": {"size": 11, "color": "#6f6f6f"},
+            }
+        ],
     )
 
     return fig
@@ -132,20 +150,21 @@ def build_pwm_figure(history: dict) -> go.Figure:
 
 def build_temperature_figure(history: dict) -> go.Figure:
     """Build Plotly figure with temperature history only."""
-    trimmed = _trim_history(history)
+    times = _fix_dates_to_today(history.get("time", []))
+    temp_values = history.get("temp", [])
     fig = go.Figure()
 
     fig.add_scatter(
-        x=trimmed["time"],
-        y=trimmed["temp"],
+        x=times,
+        y=temp_values,
         mode="lines",
         name="Temperatura (°C)",
         line={"color": "#D1491E", "width": 3, "shape": "spline", "smoothing": 0.8},
     )
 
     fig.add_scatter(
-        x=[trimmed["time"][-1]] if trimmed["time"] else [datetime.now()],
-        y=[trimmed["temp"][-1]] if trimmed["temp"] else [0],
+        x=[times[-1]] if times else [datetime.now()],
+        y=[temp_values[-1]] if temp_values else [0],
         mode="markers",
         marker={"size": 9, "color": "#D1491E", "line": {"color": "white", "width": 1.5}},
         name="Temp. atual",
@@ -183,7 +202,8 @@ def build_temperature_figure(history: dict) -> go.Figure:
             "zeroline": False,
             "tickfont": {"size": 11},
             "type": "date",
-            "tickformat": "%d/%m %H:%M:%S",
+            "tickformat": "%H:%M:%S",
+            "hoverformat": "%H:%M:%S",
         },
         yaxis={
             "title": "Temperatura (°C)",
@@ -198,6 +218,18 @@ def build_temperature_figure(history: dict) -> go.Figure:
         uirevision="static",
         # make the chart larger to improve visibility of micro-variations
         height=480,
+        annotations=[
+            {
+                "text": f"Data de hoje: {_today_label()}",
+                "xref": "paper",
+                "yref": "paper",
+                "x": 1,
+                "y": 1.08,
+                "showarrow": False,
+                "xanchor": "right",
+                "font": {"size": 11, "color": "#6f6f6f"},
+            }
+        ],
     )
 
     return fig

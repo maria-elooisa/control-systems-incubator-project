@@ -2,6 +2,7 @@ import os
 import logging
 import random
 import urllib.parse
+from time import monotonic
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
@@ -17,6 +18,8 @@ logger = logging.getLogger(__name__)
 _mock_temp = 36.5
 _mock_pwm = 55.0
 _mock_only = TELEMETRY_MODE == "mock"
+_suppress_node_red_until = 0.0
+_NODE_RED_SUPPRESS_SECONDS = 15.0
 
 
 def _mock_telemetry():
@@ -49,9 +52,10 @@ _session.mount("https://", adapter)
 
 
 def get_telemetry():
-    global _mock_only
+    global _mock_only, _suppress_node_red_until
 
-    if _mock_only or not NODE_RED_URL:
+    now = monotonic()
+    if _mock_only or not NODE_RED_URL or now < _suppress_node_red_until:
         return _mock_telemetry()
 
     parsed = urllib.parse.urlparse(NODE_RED_URL)
@@ -89,13 +93,15 @@ def get_telemetry():
         }
 
     except requests.exceptions.SSLError:
-        logger.exception("get_telemetry -> SSL error when contacting %s", NODE_RED_URL)
-        _mock_only = True 
+        logger.warning("get_telemetry -> SSL error when contacting %s; using mock telemetry", NODE_RED_URL)
+        _mock_only = True
+        _suppress_node_red_until = now + _NODE_RED_SUPPRESS_SECONDS
         return _mock_telemetry()
     except requests.exceptions.Timeout:
-        logger.warning("get_telemetry -> timeout contacting %s", NODE_RED_URL)
+        logger.warning("get_telemetry -> timeout contacting %s; using mock telemetry", NODE_RED_URL)
+        _suppress_node_red_until = now + _NODE_RED_SUPPRESS_SECONDS
         return _mock_telemetry()
     except requests.exceptions.RequestException:
-        # register full exception trace so we can diagnose failures contacting Node-RED
-        logger.exception("get_telemetry failed, using internal mock telemetry")
+        logger.warning("get_telemetry failed contacting %s; using mock telemetry", NODE_RED_URL)
+        _suppress_node_red_until = now + _NODE_RED_SUPPRESS_SECONDS
         return _mock_telemetry()
