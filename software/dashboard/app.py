@@ -116,7 +116,6 @@ def render_incubator_asset(image_path: Path) -> None:
         unsafe_allow_html=True,
     )
 
-
 def render_pwm_slider() -> None:
     """Render PWM control with number input. Envia somente ao confirmar com Enter."""
 
@@ -150,7 +149,7 @@ def render_pwm_slider() -> None:
         input_col, button_col = st.columns([3, 1], gap="small")
 
         with input_col:
-            st.number_input(
+            new_pwm_value = st.number_input(
                 "PWM Value",
                 min_value=0,
                 max_value=100,
@@ -164,7 +163,7 @@ def render_pwm_slider() -> None:
             submitted = st.form_submit_button("Enviar")
 
     if submitted:
-        pwm_to_send = float(st.session_state.pwm_input_number)
+        pwm_to_send = float(new_pwm_value)
         result = send_pwm_to_nodered(pwm_to_send)
         if result["ok"]:
             update_pwm_user(st.session_state, pwm_to_send)
@@ -172,6 +171,7 @@ def render_pwm_slider() -> None:
             add_event(st.session_state, f"PWM {pwm_to_send:.1f}% enviado ao Node-RED", level="ok")
         else:
             st.toast(f"❌ {result['message']}", icon="⚠️")
+
 
 def sparkline_svg(values: list[float], color: str, stepped: bool = False) -> str:
     if not values:
